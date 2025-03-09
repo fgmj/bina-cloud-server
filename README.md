@@ -8,11 +8,15 @@ A Spring Boot-based backend designed to receive event notifications from Android
 - Multiple database support (H2 for development, Oracle for production)
 - Event logging and persistence
 - Scalable architecture
+- Comprehensive monitoring and alerting
+- Docker-based deployment
+- Grafana dashboards
 
 ## Prerequisites
 
 - Java 17 or higher
 - Maven 3.6 or higher
+- Docker and Docker Compose
 - Oracle Database (for production only)
 
 ## Database Configuration
@@ -50,7 +54,25 @@ Uses Oracle Database:
 mvn spring-boot:run
 ```
 
-### Production Mode
+### Production Mode with Docker (Recommended)
+1. Configure environment variables:
+   ```bash
+   cp .env.template .env
+   # Edit .env with your configurations
+   ```
+
+2. Build and start the application:
+   ```bash
+   docker compose up -d
+   ```
+
+3. Check the status:
+   ```bash
+   docker compose ps
+   docker compose logs -f
+   ```
+
+### Production Mode without Docker
 ```bash
 # Set Oracle password
 export ORACLE_PASSWORD=your_secure_password
@@ -59,36 +81,75 @@ export ORACLE_PASSWORD=your_secure_password
 mvn spring-boot:run -Dspring.profiles.active=prod
 ```
 
-### Building for Production
-```bash
-# Build the application
-mvn clean package
+## Monitoring and Alerting
 
-# Run the JAR file
-java -jar target/bina-cloud-server-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod
-```
+### Components
 
-## Database Setup
+1. **Prometheus** (Metrics Collection)
+   - URL: http://localhost:9090
+   - Collects metrics from application
+   - Stores historical data
+   - Evaluates alert rules
 
-### Development (H2)
-- No setup required
-- Database and schema are automatically created
-- Data persisted in `./data/eventosdb` file
+2. **Grafana** (Visualization)
+   - URL: http://localhost:3000
+   - Default credentials: admin/admin
+   - Pre-configured dashboards
+   - Custom metric visualization
 
-### Production (Oracle)
-1. Create the database user:
-   ```sql
-   CREATE USER bina_cloud IDENTIFIED BY your_password;
-   GRANT CONNECT, RESOURCE TO bina_cloud;
-   GRANT CREATE SESSION TO bina_cloud;
-   GRANT UNLIMITED TABLESPACE TO bina_cloud;
-   ```
+3. **Alertmanager** (Alert Handling)
+   - URL: http://localhost:9093
+   - Manages alert notifications
+   - Supports email and Slack
+   - Configurable alert routing
 
-2. Update Oracle connection details in `application-prod.properties`:
-   ```properties
-   spring.datasource.url=jdbc:oracle:thin:@//your-oracle-host:1521/your-service
-   spring.datasource.username=bina_cloud
-   ```
+### Available Metrics
+
+- Request Rate
+- Response Times
+- CPU Usage
+- Memory Usage
+- Error Rates
+- JVM Metrics
+
+### Alert Rules
+
+1. **High Memory Usage**
+   - Triggers when memory exceeds 1GB
+   - Warning after 5 minutes
+   - Notifications via Slack
+
+2. **High CPU Usage**
+   - Triggers at 80% CPU usage
+   - Warning after 5 minutes
+   - Notifications via Slack
+
+3. **High Response Time**
+   - Triggers when responses exceed 2 seconds
+   - Warning after 5 minutes
+   - Notifications via Slack
+
+4. **High Error Rate**
+   - Triggers when error rate exceeds 1/second
+   - Critical alert
+   - Notifications via Slack and email
+
+5. **Instance Down**
+   - Triggers when service is unavailable
+   - Critical alert
+   - Notifications via Slack and email
+
+### Notification Channels
+
+1. **Slack**
+   - All alerts sent to configured channel
+   - Customizable message format
+   - Includes alert details and severity
+
+2. **Email**
+   - Critical alerts only
+   - HTML-formatted messages
+   - Includes detailed alert information
 
 ## API Endpoints
 
@@ -108,23 +169,61 @@ POST /api/eventos
 }
 ```
 
-## Development Tools
+## Configuration Files
 
-### H2 Console
-- Available in development mode at: http://localhost:8080/h2-console
-- Useful for database inspection and debugging
-- Disabled in production for security
+### Docker Configuration
+- `Dockerfile`: Application container configuration
+- `docker-compose.yml`: Service orchestration
+- `.env.template`: Environment variable template
 
-### Logging
-- Development: Detailed SQL logging enabled
-- Production: Minimal logging for better performance
+### Monitoring Configuration
+- `prometheus/prometheus.yml`: Prometheus configuration
+- `prometheus/rules/alerts.yml`: Alert rules
+- `alertmanager/alertmanager.yml`: Alert routing
+- `grafana/provisioning/dashboards/`: Grafana dashboards
 
-## Planned Enhancements
+## Security Notes
 
-- [ ] Add authentication and authorization
-- [ ] Implement configuration endpoint
-- [ ] Deploy to Oracle Cloud
-- [ ] Add monitoring and metrics
+- Never commit sensitive information
+- Use environment variables for secrets
+- The H2 console is disabled in production
+- Oracle credentials managed securely
+- All monitoring UIs password-protected
+
+## Maintenance
+
+### Logs
+```bash
+# Application logs
+docker compose logs -f app
+
+# Prometheus logs
+docker compose logs -f prometheus
+
+# Alertmanager logs
+docker compose logs -f alertmanager
+```
+
+### Backup
+```bash
+# Backup Prometheus data
+docker compose stop prometheus
+tar -czf prometheus-backup.tar.gz prometheus_data/
+
+# Backup Grafana data
+docker compose stop grafana
+tar -czf grafana-backup.tar.gz grafana_data/
+```
+
+### Updates
+```bash
+# Update all containers
+docker compose pull
+docker compose up -d
+
+# Update specific service
+docker compose up -d --build app
+```
 
 ## Contributing
 
@@ -134,12 +233,22 @@ POST /api/eventos
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## Security Notes
+## Troubleshooting
 
-- Never commit sensitive information (passwords, API keys)
-- Use environment variables for sensitive data
-- The H2 console is disabled in production
-- Oracle credentials should be managed securely in production
+1. **Container won't start**
+   - Check logs: `docker compose logs -f app`
+   - Verify environment variables
+   - Check disk space and permissions
+
+2. **Missing metrics**
+   - Verify Prometheus targets
+   - Check application health endpoint
+   - Review Prometheus logs
+
+3. **No alerts firing**
+   - Check Alertmanager configuration
+   - Verify alert rules
+   - Check notification channel settings
 
 ## Deployment to Oracle Cloud (Ubuntu 24.04)
 
