@@ -4,11 +4,15 @@ services:
   app:
     build: .
     ports:
-      - "8080:8080"
+      - "${SERVER_PORT:-8080}:8080"
     environment:
-      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
       - ORACLE_PASSWORD=${ORACLE_PASSWORD}
-      - JAVA_OPTS=-Xmx512m -Xms256m
+      - ORACLE_HOST=${ORACLE_HOST}
+      - ORACLE_PORT=${ORACLE_PORT:-1521}
+      - ORACLE_SERVICE=${ORACLE_SERVICE}
+      - ORACLE_USER=${ORACLE_USER:-bina_cloud}
+      - JAVA_OPTS=${JAVA_OPTS:--Xmx512m -Xms256m}
     restart: unless-stopped
     networks:
       - app-network
@@ -64,6 +68,13 @@ services:
       - "9093:9093"
     volumes:
       - ./alertmanager:/etc/alertmanager
+    environment:
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
+      - SLACK_CHANNEL=${SLACK_CHANNEL:-#alerts}
+      - ALERT_EMAIL_FROM=${ALERT_EMAIL_FROM:-}
+      - ALERT_EMAIL_TO=${ALERT_EMAIL_TO:-}
+      - ALERT_EMAIL_USERNAME=${ALERT_EMAIL_USERNAME:-}
+      - ALERT_EMAIL_PASSWORD=${ALERT_EMAIL_PASSWORD:-}
     command:
       - '--config.file=/etc/alertmanager/alertmanager.yml'
       - '--storage.path=/alertmanager'

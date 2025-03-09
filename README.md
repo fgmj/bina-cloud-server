@@ -2,6 +2,39 @@
 
 A Spring Boot-based backend designed to receive event notifications from Android applications.
 
+## Quick Start (Docker)
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/yourusername/bina-cloud-server.git
+cd bina-cloud-server
+
+# 2. Configure environment variables
+cp .env.template .env
+# Edit .env file with your Oracle database credentials and other settings
+
+# 3. Start the application with monitoring stack
+docker compose up -d --build
+
+# 4. Access the services:
+# - Application: http://localhost:8080
+# - Grafana: http://localhost:3000 (admin/admin)
+# - Prometheus: http://localhost:9090
+# - Alertmanager: http://localhost:9093
+```
+
+### Requirements for Quick Start
+- Docker Engine 24.0+
+- Docker Compose V2
+- 2GB RAM minimum
+- Oracle Database instance (connection details needed in .env)
+
+### Ports Used
+- 8080: Spring Boot application
+- 3000: Grafana
+- 9090: Prometheus
+- 9093: Alertmanager
+
 ## Features
 
 - REST API endpoint (`/api/eventos`) for event data
@@ -63,7 +96,7 @@ mvn spring-boot:run
 
 2. Build and start the application:
    ```bash
-   docker compose up -d
+   docker compose up -d --build
    ```
 
 3. Check the status:
@@ -485,4 +518,64 @@ docker compose up -d --build app
    
    # Add to crontab
    (crontab -l 2>/dev/null; echo "0 2 * * * /opt/bina-cloud/backup.sh") | crontab -
-   ``` 
+   ```
+
+## Character Encoding Support
+
+The application fully supports UTF-8 character encoding for all requests and responses. This means you can send events with special characters, accents, and international text without any issues.
+
+### Example Requests
+
+#### Using curl
+```bash
+# Test with UTF-8 characters
+curl -X POST http://localhost:8080/api/eventos \
+  -H "Content-Type: application/json; charset=UTF-8" \
+  --data-binary @- << EOF
+{
+    "description": "Teste com acentuação: á é í ó ú ã õ ç",
+    "deviceId": "test-device-001",
+    "eventType": "TEST",
+    "additionalData": "{\"location\": \"São Paulo\", \"status\": \"success\"}"
+}
+EOF
+```
+
+#### Using Java/Spring RestTemplate
+```java
+RestTemplate restTemplate = new RestTemplate();
+HttpHeaders headers = new HttpHeaders();
+headers.setContentType(MediaType.APPLICATION_JSON);
+headers.setAcceptCharset(Collections.singletonList(StandardCharsets.UTF_8));
+
+String json = "{\"description\":\"Teste com acentuação: á é í ó ú ã õ ç\"," +
+              "\"deviceId\":\"test-device-001\"," +
+              "\"eventType\":\"TEST\"," +
+              "\"additionalData\":\"{\\\"location\\\":\\\"São Paulo\\\",\\\"status\\\":\\\"success\\\"}\"}";
+
+HttpEntity<String> request = new HttpEntity<>(json, headers);
+ResponseEntity<Evento> response = restTemplate.postForEntity(
+    "http://localhost:8080/api/eventos",
+    request,
+    Evento.class
+);
+```
+
+#### Using Postman
+1. Set the `Content-Type` header to `application/json; charset=UTF-8`
+2. Input your JSON with UTF-8 characters in the request body
+3. Send the request
+
+### Important Notes
+- Always include `charset=UTF-8` in the Content-Type header
+- When using curl on Windows, you might need to set the appropriate code page:
+  ```bash
+  # For Windows PowerShell or Command Prompt
+  chcp 65001
+  ```
+- The application is configured to handle UTF-8 by default through:
+  - Server-level encoding configuration
+  - Spring MVC message converter configuration
+  - Database character set configuration
+
+# ... existing code ... 
