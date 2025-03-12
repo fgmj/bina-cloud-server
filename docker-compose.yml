@@ -14,7 +14,13 @@ services:
       - ORACLE_PORT=${ORACLE_PORT:-1521}
       - ORACLE_SERVICE=${ORACLE_SERVICE:-XE}
       - ORACLE_USER=${ORACLE_USER:-system}
-      - JAVA_OPTS=${JAVA_OPTS:-"-Xmx512m -Xms256m"}
+      - JAVA_OPTS=${JAVA_OPTS:--Xmx256m -Xms128m -XX:+UseSerialGC -XX:MaxRAM=256m -Xss512k -XX:MaxMetaspaceSize=128m}
+    deploy:
+      resources:
+        limits:
+          memory: 384m
+        reservations:
+          memory: 256m
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
       interval: 30s
@@ -42,6 +48,12 @@ services:
       - DOMAIN=${DOMAIN:-localhost}
       - ENVIRONMENT=${ENVIRONMENT:-dev}
       - CERTBOT_EMAIL=${CERTBOT_EMAIL}
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+        reservations:
+          memory: 64m
     depends_on:
       - app
     networks:
@@ -55,10 +67,17 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
     ports:
       - "9090:9090"
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+        reservations:
+          memory: 128m
     restart: unless-stopped
     networks:
       - app-network
@@ -67,14 +86,19 @@ services:
     image: grafana/grafana:latest
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning
     environment:
-      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_DOMAIN=${DOMAIN:-bina.fernandojunior.com.br}
+      - GF_INSTALL_PLUGINS=
     ports:
       - "3000:3000"
-    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+        reservations:
+          memory: 128m
     networks:
       - app-network
 
@@ -87,6 +111,12 @@ services:
       - '--storage.path=/alertmanager'
     ports:
       - "9093:9093"
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+        reservations:
+          memory: 64m
     restart: unless-stopped
     networks:
       - app-network
