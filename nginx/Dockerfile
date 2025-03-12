@@ -6,7 +6,8 @@ RUN apk add --no-cache \
     certbot-nginx \
     openssl \
     curl \
-    gettext
+    gettext \
+    tzdata
 
 # Criar diretórios necessários
 RUN mkdir -p /etc/nginx/ssl /etc/nginx/conf.d /var/www/certbot
@@ -18,12 +19,14 @@ RUN chown -R nginx:nginx /etc/nginx/ssl \
     && chmod -R 755 /var/www/certbot
 
 # Copiar arquivos de configuração
-COPY nginx.conf /etc/nginx/nginx.conf
+COPY nginx.conf.template /etc/nginx/nginx.conf.template
+COPY ssl.conf.template /etc/nginx/ssl.conf.template
 COPY init-ssl.sh /docker-entrypoint.d/init-ssl.sh
 RUN chmod +x /docker-entrypoint.d/init-ssl.sh
 
 # Configurar variável de ambiente padrão
-ENV ENVIRONMENT=dev
+ENV ENVIRONMENT=dev \
+    TZ=America/Sao_Paulo
 
 # Expor as portas 80 e 443
 EXPOSE 80 443
