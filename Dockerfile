@@ -17,9 +17,14 @@ RUN apt-get update && \
 # Copy application
 COPY --from=builder /build/target/bina-cloud-server-0.0.1-SNAPSHOT.jar app.jar
 
+# Create volume for H2 database
+VOLUME /app/data
+
 # Add health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
   CMD curl -f http://localhost:8080/actuator/health || exit 1
 
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"] 
+
+# Use H2 by default, switch to Oracle profile if USE_ORACLE is set
+CMD ["sh", "-c", "java ${JAVA_OPTS} -jar app.jar ${USE_ORACLE:+--spring.profiles.active=oracle}"] 

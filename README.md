@@ -1,44 +1,117 @@
 # Bina Cloud Server
 
-A Spring Boot-based backend designed to receive event notifications from Android applications.
+## Descrição
+Servidor backend Spring Boot para notificações de eventos Android.
 
-## Quick Start (Docker)
+## Requisitos
+- Java 17
+- Maven
+- Docker e Docker Compose
+- Oracle Database (opcional)
+- Domínio público (para HTTPS em produção)
 
-```bash
-# 1. Clone the repository
-git clone https://github.com/yourusername/bina-cloud-server.git
-cd bina-cloud-server
+## Como Usar
+1. Clone o repositório
+2. Configure as variáveis de ambiente:
+   ```bash
+   cp .env.template .env
+   # Edite o arquivo .env com suas configurações
+   ```
+3. Execute `docker compose up -d --build`
+4. Acesse:
+   - API: https://seu-dominio.com (via Nginx com HTTPS)
+   - Swagger UI: https://seu-dominio.com/swagger-ui.html
+   - H2 Console: https://seu-dominio.com/h2-console
+   - Grafana: http://localhost:3000
+   - Prometheus: http://localhost:9090
+   - Alertmanager: http://localhost:9093
 
-# 2. Configure environment variables
-cp .env.template .env
-# Edit .env file with your Oracle database credentials and other settings
+## Arquitetura
+O projeto utiliza uma arquitetura em camadas:
+- Controller: Endpoints REST
+- Service: Lógica de negócios
+- Repository: Acesso a dados
+- Entity: Modelos de dados
 
-# 3. Start the application with monitoring stack
-docker compose up -d --build
+## Configuração
+### Banco de Dados
+Por padrão, o projeto usa H2. Para usar Oracle:
+1. Configure as variáveis de ambiente no arquivo `.env`
+2. Descomente as configurações do Oracle no `application.properties`
 
-# 4. Access the services:
-# - Application: http://localhost:8080
-# - Grafana: http://localhost:3000 (admin/admin)
-# - Prometheus: http://localhost:9090
-# - Alertmanager: http://localhost:9093
-```
+### Nginx
+O projeto inclui um proxy reverso Nginx que:
+- Expõe a porta 80 para acesso externo
+- Redireciona requisições para a aplicação Spring Boot
+- Configura headers de segurança
+- Gerencia timeouts e conexões
+- Suporta WebSocket para H2 Console
 
-### Requirements for Quick Start
-- Docker Engine 24.0+
-- Docker Compose V2
-- 2GB RAM minimum
-- Oracle Database instance (connection details needed in .env)
+### Monitoramento
+- Prometheus: Coleta métricas
+- Grafana: Visualização de dados
+- Alertmanager: Gerenciamento de alertas
 
-### Ports Used
-- 8080: Spring Boot application
-- 3000: Grafana
-- 9090: Prometheus
-- 9093: Alertmanager
+## Segurança
+- Headers de segurança configurados
+- Proteção contra ataques comuns
+- Validação de entrada
+
+## Documentação
+- Swagger UI: http://localhost/swagger-ui.html
+- OpenAPI: http://localhost/api-docs
+
+## Manutenção
+### Logs
+- Aplicação: `docker compose logs app`
+- Nginx: `docker compose logs nginx`
+- Prometheus: `docker compose logs prometheus`
+- Grafana: `docker compose logs grafana`
+- Alertmanager: `docker compose logs alertmanager`
+
+### Backup
+1. Dados H2: Backup do volume `h2-data`
+2. Configurações: Backup dos arquivos de configuração
+
+### Atualização
+1. Pull das últimas alterações: `git pull`
+2. Reconstruir containers: `docker compose up -d --build`
+
+## Troubleshooting
+### Problemas Comuns
+1. Porta 80 em uso:
+   - Verifique se há outro serviço usando a porta
+   - Altere a porta no docker-compose.yml
+
+2. Erro de conexão com banco:
+   - Verifique as credenciais no .env
+   - Confirme se o banco está acessível
+
+3. Nginx não redireciona:
+   - Verifique os logs: `docker compose logs nginx`
+   - Confirme se a aplicação está rodando
+
+### Debug
+1. Logs detalhados:
+   ```bash
+   docker compose logs -f app
+   ```
+
+2. Acesso ao container:
+   ```bash
+   docker compose exec app sh
+   ```
+
+3. Verificar status:
+   ```bash
+   docker compose ps
+   ```
 
 ## Features
 
 - REST API endpoint (`/api/eventos`) for event data
-- Multiple database support (H2 for development, Oracle for production)
+- Built-in H2 database with persistent storage
+- Optional Oracle database support
 - Event logging and persistence
 - Scalable architecture
 - Comprehensive monitoring and alerting
@@ -50,69 +123,92 @@ docker compose up -d --build
 - Java 17 or higher
 - Maven 3.6 or higher
 - Docker and Docker Compose
-- Oracle Database (for production only)
 
 ## Database Configuration
 
-The application supports different database configurations based on the environment:
+The application uses H2 database by default, with optional Oracle support:
 
-### Development (Default)
-Uses H2 file-based database for local development:
-- Database file location: `./data/eventosdb`
+### Default (H2)
+- File-based H2 database with persistence
+- Database location: `./data/eventosdb` (Docker: mounted as volume)
 - H2 Console: http://localhost:8080/h2-console
-- Credentials:
+- Default credentials:
   ```properties
   JDBC URL: jdbc:h2:file:./data/eventosdb
   Username: sa
   Password: password
   ```
 
-### Testing
-Uses H2 in-memory database:
-- Automatically configured for tests
-- No persistence between test runs
-- Clean database for each test execution
+### Oracle (Optional)
+To use Oracle instead of H2, set the following environment variables:
+```bash
+USE_ORACLE=true
+ORACLE_HOST=your-oracle-host
+ORACLE_PORT=1521
+ORACLE_SERVICE=your-service
+ORACLE_USER=your-user
+ORACLE_PASSWORD=your-password
+```
 
-### Production
-Uses Oracle Database:
-- Requires Oracle database instance
-- Configure connection in `application-prod.properties`
-- Set environment variable `ORACLE_PASSWORD` for database password
+Example using Oracle in docker-compose.yml:
+```yaml
+services:
+  app:
+    environment:
+      - USE_ORACLE=true
+      - ORACLE_HOST=your-oracle-host
+      - ORACLE_PORT=1521
+      - ORACLE_SERVICE=your-service
+      - ORACLE_USER=your-user
+      - ORACLE_PASSWORD=your-password
+```
 
 ## Building and Running
 
-### Development Mode (Default)
+### Local Development
 ```bash
-# Run with H2 database
+# Run with default H2 database
 mvn spring-boot:run
 ```
 
-### Production Mode with Docker (Recommended)
-1. Configure environment variables:
+### Docker Deployment (Recommended)
+```bash
+# Start all services with H2 database (default)
+docker compose up -d --build
+
+# Check the status
+docker compose ps
+docker compose logs -f
+```
+
+### Using Oracle Database
+1. Create a `.env` file with Oracle credentials:
    ```bash
-   cp .env.template .env
-   # Edit .env with your configurations
+   # .env
+   USE_ORACLE=true
+   ORACLE_HOST=your-oracle-host
+   ORACLE_PORT=1521
+   ORACLE_SERVICE=your-service
+   ORACLE_USER=your-user
+   ORACLE_PASSWORD=your-password
    ```
 
-2. Build and start the application:
+2. Start the application:
    ```bash
    docker compose up -d --build
    ```
 
-3. Check the status:
-   ```bash
-   docker compose ps
-   docker compose logs -f
-   ```
+## Data Persistence
 
-### Production Mode without Docker
-```bash
-# Set Oracle password
-export ORACLE_PASSWORD=your_secure_password
+### H2 Database (Default)
+- Data is persisted in a Docker volume (`h2-data`)
+- Survives container restarts
+- Backup the `h2-data` volume for data preservation
 
-# Run with Oracle database
-mvn spring-boot:run -Dspring.profiles.active=prod
-```
+### Oracle Database
+- Data persistence handled by Oracle instance
+- Application connects to existing Oracle database
+- Follow Oracle backup procedures
 
 ## Monitoring and Alerting
 
@@ -578,4 +674,55 @@ ResponseEntity<Evento> response = restTemplate.postForEntity(
   - Spring MVC message converter configuration
   - Database character set configuration
 
-# ... existing code ... 
+### Documentação da API
+A documentação completa da API está disponível através do Swagger UI:
+- Interface interativa: http://localhost:8080/swagger-ui.html
+- Documentação OpenAPI: http://localhost:8080/api-docs
+
+O Swagger UI oferece:
+- Interface interativa para testar os endpoints
+- Documentação detalhada dos parâmetros
+- Exemplos de requisições e respostas
+- Descrição dos códigos de retorno
+
+## Configuração HTTPS
+### Desenvolvimento
+- Certificados auto-assinados são gerados automaticamente
+- Acesse via https://localhost
+- Ignore os avisos de certificado no navegador
+
+### Produção
+1. Configure as variáveis de ambiente:
+   ```bash
+   DOMAIN=seu-dominio.com
+   ENVIRONMENT=prod
+   CERTBOT_EMAIL=seu-email@exemplo.com
+   ```
+
+2. Certifique-se que:
+   - O domínio aponta para o IP do servidor
+   - As portas 80 e 443 estão liberadas no firewall
+   - O servidor tem acesso à internet
+
+3. Os certificados SSL serão:
+   - Gerados automaticamente na primeira execução
+   - Renovados automaticamente antes de expirarem
+   - Armazenados em um volume Docker persistente
+
+### Troubleshooting HTTPS
+1. Certificados não são gerados:
+   - Verifique se o domínio está configurado corretamente
+   - Confirme se as portas 80 e 443 estão acessíveis
+   - Verifique os logs: `docker compose logs nginx`
+
+2. Erro de certificado:
+   - Em desenvolvimento: Use http://localhost:8080
+   - Em produção: Verifique se o domínio está correto
+   - Confirme se os certificados foram gerados
+
+3. Redirecionamento não funciona:
+   - Verifique a configuração do Nginx
+   - Confirme se o SSL está habilitado
+   - Verifique os logs do Nginx
+
+# ... rest of the existing content ... 
