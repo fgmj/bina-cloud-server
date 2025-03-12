@@ -1,31 +1,55 @@
 #!/bin/sh
 
-# Definir host padrão se não estiver definido
-NGINX_HOST=${NGINX_HOST:-localhost}
+DOMAIN="bina.fernandojunior.com.br"
+SSL_PATH="/etc/nginx/ssl/live/$DOMAIN"
 
-# Criar diretório para certificados
-mkdir -p /etc/nginx/ssl/live/$NGINX_HOST
-
-# Verificar se os certificados já existem
-if [ ! -f "/etc/nginx/ssl/live/$NGINX_HOST/fullchain.pem" ]; then
-    echo "Certificados SSL não encontrados. Gerando certificados auto-assinados para desenvolvimento..."
-    
-    # Gerar chave privada e certificado auto-assinado
-    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-        -keyout /etc/nginx/ssl/live/$NGINX_HOST/privkey.pem \
-        -out /etc/nginx/ssl/live/$NGINX_HOST/fullchain.pem \
-        -subj "/C=BR/ST=SP/L=Sao Paulo/O=Bina Cloud/CN=$NGINX_HOST"
-fi
-
-# Se estiver em produção e tiver email configurado, tentar Let's Encrypt
-if [ "$ENVIRONMENT" = "prod" ] && [ ! -z "$CERTBOT_EMAIL" ]; then
-    echo "Tentando renovar certificados SSL..."
-    certbot --nginx \
-        --non-interactive \
-        --agree-tos \
-        --email $CERTBOT_EMAIL \
-        --domains $NGINX_HOST \
-        --keep-until-expiring
+if [ "$ENVIRONMENT" = "prod" ]; then
+    # Produção: Usar Let's Encrypt
+    if [ ! -d "$SSL_PATH" ]; then
+        echo "Gerando certificados Let's Encrypt para $DOMAIN..."
+        mkdir -p /var/www/certbot
+        certbot certonly --webroot \
+            --webroot-path /var/www/certbot \
+            --email $CERTBOT_EMAIL \
+            --agree-tos \
+            --no-eff-email \
+            -d $DOMAIN \
+            --staging
+        
+        # Se o certificado foi gerado com sucesso, remover --staging
+        if [ -d "$SSL_PATH" ]; then
+            certbot certonly --webroot \
+                --webroot-path /var/www/certbot \
+                --email $CERTBOT_EMAIL \
+                --agree-tos \
+                --no-eff-email \
+                -d $DOMAIN \
+                --force-renewal
+        fi
+    else
+        echo "Certificados Let's Encrypt já existem. Tentando renovar..."
+        certbot renew
+    fi
+else
+    # Desenvolvimento: Gerar certificados auto-assinados
+    if [ ! -d "$SSL_PATH" ]; then
+        echo "Gerando certificados auto-assinados para desenvolvimento..."
+        mkdir -p "$SSL_PATH"
+        
+        # Gerar chave privada e CSR
+        openssl req -x509 -nodes -newkey rsa:2048 -days 365 \
+            -keyout "$SSL_PATH/privkey.pem" \
+            -out "$SSL_PATH/fullchain.pem" \
+            -subj "/CN=$DOMAIN"
+        
+        # Copiar fullchain.pem para chain.pem
+        cp "$SSL_PATH/fullchain.pem" "$SSL_PATH/chain.pem"
+        
+        # Ajustar permissões
+        chmod 644 "$SSL_PATH"/*.pem
+    else
+        echo "Certificados auto-assinados já existem."
+    fi
 fi
 
 # Iniciar Nginx
