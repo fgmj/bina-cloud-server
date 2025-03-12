@@ -6,8 +6,7 @@ Servidor backend Spring Boot para notificações de eventos Android.
 ## Requisitos
 - Java 17
 - Maven
-- Docker e Docker Compose
-- Oracle Database (opcional)
+- Docker e Docker Compose V2
 - Domínio público (para HTTPS em produção)
 
 ## Como Usar
@@ -17,7 +16,16 @@ Servidor backend Spring Boot para notificações de eventos Android.
    cp .env.template .env
    # Edite o arquivo .env com suas configurações
    ```
-3. Execute `docker compose up -d --build`
+
+3. Build e execução:
+   ```bash
+   # Usando Docker BuildKit (recomendado)
+   docker buildx bake --load
+
+   # Ou usando Docker Compose diretamente
+   docker compose up -d --build
+   ```
+
 4. Acesse:
    - API: https://seu-dominio.com (via Nginx com HTTPS)
    - Swagger UI: https://seu-dominio.com/swagger-ui.html
@@ -35,9 +43,11 @@ O projeto utiliza uma arquitetura em camadas:
 
 ## Configuração
 ### Banco de Dados
-Por padrão, o projeto usa H2. Para usar Oracle:
-1. Configure as variáveis de ambiente no arquivo `.env`
-2. Descomente as configurações do Oracle no `application.properties`
+O projeto usa H2 como banco de dados:
+- Banco de dados em arquivo para persistência
+- Console web para administração
+- Baixo consumo de recursos
+- Ideal para aplicações de pequeno/médio porte
 
 ### Nginx
 O projeto inclui um proxy reverso Nginx que:
@@ -106,30 +116,19 @@ O projeto inclui um proxy reverso Nginx que:
    ```bash
    docker compose ps
    ```
-
 ## Features
 
 - REST API endpoint (`/api/eventos`) for event data
 - Built-in H2 database with persistent storage
-- Optional Oracle database support
 - Event logging and persistence
 - Scalable architecture
 - Comprehensive monitoring and alerting
 - Docker-based deployment
 - Grafana dashboards
 
-## Prerequisites
-
-- Java 17 or higher
-- Maven 3.6 or higher
-- Docker and Docker Compose
-
 ## Database Configuration
-
-The application uses H2 database by default, with optional Oracle support:
-
-### Default (H2)
-- File-based H2 database with persistence
+The application uses H2 database:
+- File-based with persistence
 - Database location: `./data/eventosdb` (Docker: mounted as volume)
 - H2 Console: http://localhost:8080/h2-console
 - Default credentials:
@@ -137,40 +136,6 @@ The application uses H2 database by default, with optional Oracle support:
   JDBC URL: jdbc:h2:file:./data/eventosdb
   Username: sa
   Password: password
-  ```
-
-### Oracle (Optional)
-To use Oracle instead of H2, set the following environment variables:
-```bash
-USE_ORACLE=true
-ORACLE_HOST=your-oracle-host
-ORACLE_PORT=1521
-ORACLE_SERVICE=your-service
-ORACLE_USER=your-user
-ORACLE_PASSWORD=your-password
-```
-
-Example using Oracle in docker-compose.yml:
-```yaml
-services:
-  app:
-    environment:
-      - USE_ORACLE=true
-      - ORACLE_HOST=your-oracle-host
-      - ORACLE_PORT=1521
-      - ORACLE_SERVICE=your-service
-      - ORACLE_USER=your-user
-      - ORACLE_PASSWORD=your-password
-```
-
-## Building and Running
-
-### Local Development
-```bash
-# Run with default H2 database
-mvn spring-boot:run
-```
-
 ### Docker Deployment (Recommended)
 ```bash
 # Start all services with H2 database (default)
@@ -178,37 +143,12 @@ docker compose up -d --build
 
 # Check the status
 docker compose ps
-docker compose logs -f
-```
-
-### Using Oracle Database
-1. Create a `.env` file with Oracle credentials:
-   ```bash
-   # .env
-   USE_ORACLE=true
-   ORACLE_HOST=your-oracle-host
-   ORACLE_PORT=1521
-   ORACLE_SERVICE=your-service
-   ORACLE_USER=your-user
-   ORACLE_PASSWORD=your-password
-   ```
-
-2. Start the application:
-   ```bash
-   docker compose up -d --build
-   ```
+docker compose logs -f  ```
 
 ## Data Persistence
-
-### H2 Database (Default)
 - Data is persisted in a Docker volume (`h2-data`)
 - Survives container restarts
 - Backup the `h2-data` volume for data preservation
-
-### Oracle Database
-- Data persistence handled by Oracle instance
-- Application connects to existing Oracle database
-- Follow Oracle backup procedures
 
 ## Monitoring and Alerting
 
@@ -316,7 +256,6 @@ POST /api/eventos
 - Never commit sensitive information
 - Use environment variables for secrets
 - The H2 console is disabled in production
-- Oracle credentials managed securely
 - All monitoring UIs password-protected
 
 ## Maintenance
@@ -429,9 +368,8 @@ docker compose up -d --build app
      app:
        build: .
        ports:
-         - "8080:8080"
-       environment:
-         - ORACLE_PASSWORD=${ORACLE_PASSWORD}
+         - "8080:8080"      
+         
        restart: unless-stopped
        networks:
          - app-network
@@ -450,8 +388,7 @@ docker compose up -d --build app
    # Build the application
    ./mvnw clean package -DskipTests
 
-   # Create .env file
-   echo "ORACLE_PASSWORD=your_secure_password" > .env
+   
 
    # Build and run with Docker Compose
    docker compose up -d --build
@@ -503,8 +440,7 @@ docker compose up -d --build app
    After=network.target
 
    [Service]
-   User=binacloud
-   Environment="ORACLE_PASSWORD=your_secure_password"
+   User=binacloud   
    WorkingDirectory=/opt/bina-cloud/app
    ExecStart=/usr/bin/java -jar bina-cloud-server-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod
    SuccessExitStatus=143
