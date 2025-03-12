@@ -46,7 +46,7 @@ http {
     # Configuração do servidor HTTP (redireciona para HTTPS)
     server {
         listen 80;
-        server_name localhost;
+        server_name $NGINX_HOST;
         return 301 https://$host$request_uri;
     }
 
@@ -54,11 +54,11 @@ http {
     server {
         listen 443 ssl;
         http2 on;
-        server_name localhost;
+        server_name $NGINX_HOST;
 
         # Certificados SSL
-        ssl_certificate /etc/nginx/ssl/live/localhost/fullchain.pem;
-        ssl_certificate_key /etc/nginx/ssl/live/localhost/privkey.pem;
+        ssl_certificate /etc/nginx/ssl/live/$NGINX_HOST/fullchain.pem;
+        ssl_certificate_key /etc/nginx/ssl/live/$NGINX_HOST/privkey.pem;
 
         # Configuração para a aplicação Spring Boot
         location / {

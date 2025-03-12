@@ -42,7 +42,7 @@ services:
     volumes:
       - ssl-certs:/etc/nginx/ssl
     environment:
-      - DOMAIN=${DOMAIN:-localhost}
+      - NGINX_HOST=${NGINX_HOST:-localhost}
       - ENVIRONMENT=${ENVIRONMENT:-dev}
       - CERTBOT_EMAIL=${CERTBOT_EMAIL}
     deploy:
@@ -86,7 +86,7 @@ services:
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SERVER_DOMAIN=${DOMAIN:-bina.fernandojunior.com.br}
+      - GF_SERVER_DOMAIN=${NGINX_HOST:-localhost}
       - GF_INSTALL_PLUGINS=
     ports:
       - "3000:3000"

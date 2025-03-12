@@ -1,20 +1,20 @@
 #!/bin/sh
 
-# Definir domínio padrão se não estiver definido
-DOMAIN=${DOMAIN:-localhost}
+# Definir host padrão se não estiver definido
+NGINX_HOST=${NGINX_HOST:-localhost}
 
 # Criar diretório para certificados
-mkdir -p /etc/nginx/ssl/live/$DOMAIN
+mkdir -p /etc/nginx/ssl/live/$NGINX_HOST
 
 # Verificar se os certificados já existem
-if [ ! -f "/etc/nginx/ssl/live/$DOMAIN/fullchain.pem" ]; then
+if [ ! -f "/etc/nginx/ssl/live/$NGINX_HOST/fullchain.pem" ]; then
     echo "Certificados SSL não encontrados. Gerando certificados auto-assinados para desenvolvimento..."
     
     # Gerar chave privada e certificado auto-assinado
     openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-        -keyout /etc/nginx/ssl/live/$DOMAIN/privkey.pem \
-        -out /etc/nginx/ssl/live/$DOMAIN/fullchain.pem \
-        -subj "/C=BR/ST=SP/L=Sao Paulo/O=Bina Cloud/CN=$DOMAIN"
+        -keyout /etc/nginx/ssl/live/$NGINX_HOST/privkey.pem \
+        -out /etc/nginx/ssl/live/$NGINX_HOST/fullchain.pem \
+        -subj "/C=BR/ST=SP/L=Sao Paulo/O=Bina Cloud/CN=$NGINX_HOST"
 fi
 
 # Se estiver em produção e tiver email configurado, tentar Let's Encrypt
@@ -24,7 +24,7 @@ if [ "$ENVIRONMENT" = "prod" ] && [ ! -z "$CERTBOT_EMAIL" ]; then
         --non-interactive \
         --agree-tos \
         --email $CERTBOT_EMAIL \
-        --domains $DOMAIN \
+        --domains $NGINX_HOST \
         --keep-until-expiring
 fi
 
