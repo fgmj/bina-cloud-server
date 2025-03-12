@@ -1,15 +1,17 @@
 FROM nginx:alpine
 
-# Instalar Certbot e suas dependências
-RUN apk add --no-cache certbot certbot-nginx
+# Instalar dependências
+RUN apk add --no-cache \
+    certbot \
+    certbot-nginx \
+    openssl \
+    curl
 
 # Criar diretório para certificados SSL
 RUN mkdir -p /etc/nginx/ssl
 
-# Copiar a configuração do Nginx
+# Copiar arquivos de configuração
 COPY nginx.conf /etc/nginx/nginx.conf
-
-# Copiar script de inicialização
 COPY init-ssl.sh /docker-entrypoint.d/init-ssl.sh
 RUN chmod +x /docker-entrypoint.d/init-ssl.sh
 
