@@ -2,34 +2,24 @@ FROM nginx:alpine
 
 # Instalar dependências
 RUN apk add --no-cache \
-    certbot \
-    certbot-nginx \
-    openssl \
     curl \
     gettext \
     tzdata
 
-# Criar diretórios necessários
-RUN mkdir -p /etc/nginx/ssl /etc/nginx/conf.d /var/www/certbot
+# Criar diretório de configuração
+RUN mkdir -p /etc/nginx/conf.d
 
 # Configurar permissões
-RUN chown -R nginx:nginx /etc/nginx/ssl \
-    && chown -R nginx:nginx /etc/nginx/conf.d \
-    && chown -R nginx:nginx /var/www/certbot \
-    && chmod -R 755 /var/www/certbot
+RUN chown -R nginx:nginx /etc/nginx/conf.d
 
 # Copiar arquivos de configuração
-COPY nginx.conf.template /etc/nginx/nginx.conf.template
-COPY ssl.conf.template /etc/nginx/ssl.conf.template
-COPY init-ssl.sh /docker-entrypoint.d/init-ssl.sh
-RUN chmod +x /docker-entrypoint.d/init-ssl.sh
+COPY nginx.conf.template /etc/nginx/nginx.conf
 
 # Configurar variável de ambiente padrão
-ENV ENVIRONMENT=dev \
-    TZ=America/Sao_Paulo
+ENV TZ=America/Sao_Paulo
 
-# Expor as portas 80 e 443
-EXPOSE 80 443
+# Expor a porta 80
+EXPOSE 80
 
 # Comando para iniciar o Nginx
 CMD ["nginx", "-g", "daemon off;"] 
