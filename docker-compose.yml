@@ -15,9 +15,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256m
+          memory: 512m
         reservations:
-          memory: 192m
+          memory: 256m
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
       interval: 30s
@@ -56,76 +56,9 @@ services:
     networks:
       - app-network
 
-  prometheus:
-    image: prom/prometheus:latest
-    volumes:
-      - ./prometheus:/etc/prometheus
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--storage.tsdb.retention.time=7d'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
-      - '--storage.tsdb.retention.size=512MB'
-      - '--web.enable-lifecycle'
-    ports:
-      - "9090:9090"
-    deploy:
-      resources:
-        limits:
-          memory: 128m
-        reservations:
-          memory: 64m
-    restart: unless-stopped
-    networks:
-      - app-network
-
-  grafana:
-    image: grafana/grafana:latest
-    volumes:
-      - grafana_data:/var/lib/grafana
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
-      - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SERVER_DOMAIN=${NGINX_HOST:-localhost}
-      - GF_INSTALL_PLUGINS=
-      - GF_AUTH_ANONYMOUS_ENABLED=false
-      - GF_DASHBOARDS_MIN_REFRESH_INTERVAL=1m
-      - GF_SECURITY_ALLOW_EMBEDDING=false
-    deploy:
-      resources:
-        limits:
-          memory: 128m
-        reservations:
-          memory: 64m
-    networks:
-      - app-network
-
-  alertmanager:
-    image: prom/alertmanager:latest
-    volumes:
-      - ./alertmanager:/etc/alertmanager
-    command:
-      - '--config.file=/etc/alertmanager/alertmanager.yml'
-      - '--storage.path=/alertmanager'
-      - '--data.retention=72h'
-    ports:
-      - "9093:9093"
-    deploy:
-      resources:
-        limits:
-          memory: 32m
-        reservations:
-          memory: 16m
-    restart: unless-stopped
-    networks:
-      - app-network
 
 volumes:
-  h2-data:
-  prometheus_data:
-  grafana_data:
+  h2-data: 
   ssl-certs:
 
 networks:

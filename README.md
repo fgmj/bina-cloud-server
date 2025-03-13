@@ -36,11 +36,8 @@ Servidor backend Spring Boot para notificações de eventos Android.
 4. Acesse:
    - API: https://seu-dominio.com (via Nginx com HTTPS)
    - Swagger UI: https://seu-dominio.com/swagger-ui.html
-   - H2 Console: https://seu-dominio.com/h2-console
-   - Grafana: http://localhost:3000
-   - Prometheus: http://localhost:9090
-   - Alertmanager: http://localhost:9093
-
+   - H2 Console: https://seu-dominio.com/h2-console   
+   
 ## Arquitetura
 O projeto utiliza uma arquitetura em camadas:
 - Controller: Endpoints REST
@@ -64,10 +61,6 @@ O projeto inclui um proxy reverso Nginx que:
 - Gerencia timeouts e conexões
 - Suporta WebSocket para H2 Console
 
-### Monitoramento
-- Prometheus: Coleta métricas
-- Grafana: Visualização de dados
-- Alertmanager: Gerenciamento de alertas
 
 ## Segurança
 - Headers de segurança configurados
@@ -82,9 +75,6 @@ O projeto inclui um proxy reverso Nginx que:
 ### Logs
 - Aplicação: `docker compose logs app`
 - Nginx: `docker compose logs nginx`
-- Prometheus: `docker compose logs prometheus`
-- Grafana: `docker compose logs grafana`
-- Alertmanager: `docker compose logs alertmanager`
 
 ### Backup
 1. Dados H2: Backup do volume `h2-data`
@@ -130,9 +120,8 @@ O projeto inclui um proxy reverso Nginx que:
 - Built-in H2 database with persistent storage
 - Event logging and persistence
 - Scalable architecture
-- Comprehensive monitoring and alerting
 - Docker-based deployment
-- Grafana dashboards
+
 
 ## Database Configuration
 The application uses H2 database:
@@ -163,20 +152,7 @@ O sistema foi otimizado para rodar em ambientes com recursos limitados (1GB RAM)
 - Access log desabilitado
 - File cache otimizado
 
-### Prometheus
-- Scrape interval aumentado para 30s
-- Retention time reduzido para 7 dias
-- Storage size limitado a 512MB
 
-### Alertmanager
-- Group wait reduzido para 10s
-- Configurações simplificadas
-
-### Grafana
-- SQLite em modo shared
-- WAL desabilitado
-- Métricas internas desabilitadas
-- Versões de dashboard limitadas a 5
 
 ## Variáveis de Ambiente
 
@@ -184,31 +160,18 @@ Configure as seguintes variáveis no arquivo `.env`:
 
 ```env
 NGINX_HOST=seu-dominio.com
-GRAFANA_ADMIN_PASSWORD=sua-senha
-PROMETHEUS_BASIC_AUTH_USER=admin
-PROMETHEUS_BASIC_AUTH_PASSWORD=sua-senha
-ALERT_EMAIL_FROM=seu-email@gmail.com
-ALERT_EMAIL_USERNAME=seu-email@gmail.com
-ALERT_EMAIL_PASSWORD=sua-senha-app
-ALERT_EMAIL_TO=destinatario@example.com
 ```
 
 ## Backup e Restauração
 
 ### Backup
 ```bash
-docker compose exec -T grafana tar czf - /var/lib/grafana > grafana-backup.tar.gz
-docker compose exec -T prometheus tar czf - /prometheus > prometheus-backup.tar.gz
 docker compose exec -T app tar czf - /data > app-backup.tar.gz
 ```
 
 ### Restauração
 ```bash
-docker compose stop grafana prometheus app
-docker compose exec -T grafana tar xzf - < grafana-backup.tar.gz
-docker compose exec -T prometheus tar xzf - < prometheus-backup.tar.gz
 docker compose exec -T app tar xzf - < app-backup.tar.gz
-docker compose start grafana prometheus app
 ```
 
 ## Troubleshooting
