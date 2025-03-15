@@ -33,4 +33,7 @@ public class Evento {
     
     @Column(length = 255)
     private String additionalData;
+    
+    @Column(length = 20)
+    private String phoneNumber;
 } 
