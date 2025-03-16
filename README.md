@@ -1,75 +1,143 @@
 # Bina Cloud Server
 
-## Descrição
-Servidor backend Spring Boot para notificações de eventos Android.
+Servidor Spring Boot para gerenciamento de eventos e notificações em tempo real.
+
+## Funcionalidades
+
+- ✨ API REST para gerenciamento de eventos
+- 🔄 Notificações em tempo real via WebSocket
+- 📱 Integração com url externa
+- 📊 Interface web para monitoramento
+- 📝 Histórico de eventos
+- 🔒 Banco de dados H2 com persistência em arquivo
+
+## Páginas
+
+- `/monitor` - Monitor em tempo real com WebSocket
+  - Exibe eventos em tempo real
+  - Abre automaticamente URLs do portal Gas Delivery
+  - Mostra status da conexão WebSocket
+  - Notificações visuais para novos eventos
+  
+- `/eventos` - Histórico dos últimos 10 eventos
+  - Lista ordenada por data/hora
+  - Atualização manual via botão "Atualizar"
+
+- `/swagger-ui.html` - Documentação da API
+  - Endpoints disponíveis
+  - Modelos de requisição
+  - Testes interativos
 
 ## Requisitos
+
 - Java 17
-- Maven
-- Docker e Docker Compose V2
-- Domínio público (para HTTPS em produção)
+- Maven 3.x
+- Docker (opcional)
 
-## Requisitos Mínimos
+## Executando o Projeto
 
-- Docker e Docker Compose
-- 1GB de RAM
-- 1 vCPU
-- 10GB de espaço em disco
+### Usando Maven
 
-## Como Usar
-1. Clone o repositório
-2. Configure as variáveis de ambiente:
-   ```bash
-   cp .env.template .env
-   # Edite o arquivo .env com suas configurações
-   ```
+```bash
+# Compilar e executar
+mvn spring-boot:run
+```
 
-3. Build e execução:
-   ```bash
-   # Usando Docker BuildKit (recomendado)
-   docker buildx bake --load
+### Usando Docker Compose
 
-   # Ou usando Docker Compose diretamente
-   docker compose up -d --build
-   ```
+```bash
+# Construir e iniciar containers
+docker compose up -d
 
-4. Acesse:
-   - API: https://seu-dominio.com (via Nginx com HTTPS)
-   - Swagger UI: https://seu-dominio.com/swagger-ui.html
-   - H2 Console: https://seu-dominio.com/h2-console   
-   
-## Arquitetura
-O projeto utiliza uma arquitetura em camadas:
-- Controller: Endpoints REST
-- Service: Lógica de negócios
-- Repository: Acesso a dados
-- Entity: Modelos de dados
+# Parar containers
+docker compose down
+```
 
-## Configuração
-### Banco de Dados
-O projeto usa H2 como banco de dados:
-- Banco de dados em arquivo para persistência
-- Console web para administração
-- Baixo consumo de recursos
-- Ideal para aplicações de pequeno/médio porte
+## Endpoints da API
 
-### Nginx
-O projeto inclui um proxy reverso Nginx que:
-- Expõe a porta 80 para acesso externo
-- Redireciona requisições para a aplicação Spring Boot
-- Configura headers de segurança
-- Gerencia timeouts e conexões
-- Suporta WebSocket para H2 Console
+### POST /api/eventos
+Cria um novo evento.
+
+```bash
+curl -X POST http://localhost:8080/api/eventos \
+  -H "Content-Type: application/json" \
+  -d '{
+    "description": "Teste de evento",
+    "deviceId": "device123",
+    "eventType": "TEST",
+    "additionalData": "{\"numero\":\"11999999999\",\"data\":\"15/03/2025 17:47:06\"}"
+  }'
+```
+
+### GET /api/eventos
+Lista todos os eventos cadastrados.
+
+```bash
+curl http://localhost:8080/api/eventos
+```
+
+### GET /api/eventos/{id}
+Busca um evento específico por ID.
+
+```bash
+curl http://localhost:8080/api/eventos/1
+```
+
+## Configuração do Banco de Dados
+
+O projeto usa H2 Database com persistência em arquivo:
+
+- URL: jdbc:h2:file:./data/eventosdb
+- Username: sa
+- Password: password
+- Console: http://localhost:8080/h2-console
 
 
-## Segurança
-- Headers de segurança configurados
-- Proteção contra ataques comuns
-- Validação de entrada
+
+## Desenvolvimento
+
+### Estrutura do Projeto
+
+```
+src/main/java/com/bina/cloud/
+├── config/          # Configurações (WebSocket, CORS)
+├── controller/      # Controllers REST e Web
+├── model/          # Entidades JPA
+├── repository/     # Repositórios Spring Data
+└── service/        # Lógica de negócio
+```
+
+### Tecnologias Utilizadas
+
+- Spring Boot 3.2.3
+- Spring WebSocket
+- Spring Data JPA
+- H2 Database
+- Thymeleaf
+- Bootstrap 5
+- SockJS
+- STOMP WebSocket
+- Swagger/OpenAPI
+
+## Monitoramento
+
+- Actuator endpoints: http://localhost:8080/actuator
+- Health check: http://localhost:8080/actuator/health
+- Métricas: http://localhost:8080/actuator/metrics
 
 ## Documentação
 - Swagger UI: http://localhost/swagger-ui.html
 - OpenAPI: http://localhost/api-docs
+
+## Ambiente de Produção
+
+Para ambiente de produção, configure as seguintes variáveis de ambiente:
+
+```properties
+SPRING_PROFILES_ACTIVE=prod
+SERVER_PORT=8080
+JAVA_OPTS=-Xmx256m -Xms128m
+```
 
 ## Manutenção
 ### Logs
@@ -84,19 +152,7 @@ O projeto inclui um proxy reverso Nginx que:
 1. Pull das últimas alterações: `git pull`
 2. Reconstruir containers: `docker compose up -d --build`
 
-## Troubleshooting
-### Problemas Comuns
-1. Porta 80 em uso:
-   - Verifique se há outro serviço usando a porta
-   - Altere a porta no docker-compose.yml
 
-2. Erro de conexão com banco:
-   - Verifique as credenciais no .env
-   - Confirme se o banco está acessível
-
-3. Nginx não redireciona:
-   - Verifique os logs: `docker compose logs nginx`
-   - Confirme se a aplicação está rodando
 
 ### Debug
 1. Logs detalhados:
@@ -114,53 +170,6 @@ O projeto inclui um proxy reverso Nginx que:
    docker compose ps
    ```
 
-## Features
-
-- REST API endpoint (`/api/eventos`) for event data
-- Built-in H2 database with persistent storage
-- Event logging and persistence
-- Scalable architecture
-- Docker-based deployment
-
-
-## Database Configuration
-The application uses H2 database:
-- File-based with persistence
-- Database location: `./data/eventosdb` (Docker: mounted as volume)
-- H2 Console: http://localhost:8080/h2-console
-- Default credentials:
-  ```properties
-  JDBC URL: jdbc:h2:file:./data/eventosdb
-  Username: sa
-  Password: password
-
-## Otimizações de Memória
-
-O sistema foi otimizado para rodar em ambientes com recursos limitados (1GB RAM):
-
-### Spring Boot
-- Heap size limitado a 256MB
-- Connection pool reduzido para 3 conexões
-- Cache Caffeine otimizado
-- Logging reduzido
-- Batch size reduzido para 20
-
-### Nginx
-- Worker processes limitado a 1
-- Worker connections reduzido para 512
-- Buffer sizes otimizados
-- Access log desabilitado
-- File cache otimizado
-
-
-
-## Variáveis de Ambiente
-
-Configure as seguintes variáveis no arquivo `.env`:
-
-```env
-NGINX_HOST=seu-dominio.com
-```
 
 ## Backup e Restauração
 
@@ -205,48 +214,7 @@ docker compose exec nginx certbot renew
 docker compose logs nginx
 ```
 
-## Suporte
 
-Para suporte, abra uma issue no GitHub ou envie um email para suporte@example.com.
+## Licença
 
-## Configuração HTTPS
-### Desenvolvimento
-- Certificados auto-assinados são gerados automaticamente
-- Acesse via https://localhost
-- Ignore os avisos de certificado no navegador
-
-### Produção
-1. Configure as variáveis de ambiente:
-   ```bash
-   DOMAIN=seu-dominio.com
-   ENVIRONMENT=prod
-   CERTBOT_EMAIL=seu-email@exemplo.com
-   ```
-
-2. Certifique-se que:
-   - O domínio aponta para o IP do servidor
-   - As portas 80 e 443 estão liberadas no firewall
-   - O servidor tem acesso à internet
-
-3. Os certificados SSL serão:
-   - Gerados automaticamente na primeira execução
-   - Renovados automaticamente antes de expirarem
-   - Armazenados em um volume Docker persistente
-
-### Troubleshooting HTTPS
-1. Certificados não são gerados:
-   - Verifique se o domínio está configurado corretamente
-   - Confirme se as portas 80 e 443 estão acessíveis
-   - Verifique os logs: `docker compose logs nginx`
-
-2. Erro de certificado:
-   - Em desenvolvimento: Use http://localhost:8080
-   - Em produção: Verifique se o domínio está correto
-   - Confirme se os certificados foram gerados
-
-3. Redirecionamento não funciona:
-   - Verifique a configuração do Nginx
-   - Confirme se o SSL está habilitado
-   - Verifique os logs do Nginx
-
-# ... rest of the existing content ... 
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.

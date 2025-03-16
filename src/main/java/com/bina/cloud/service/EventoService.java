@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -38,5 +39,9 @@ public class EventoService {
 
     public List<Evento> listarEventos() {
         return eventoRepository.findAll();
+    }
+
+    public Optional<Evento> buscarPorId(Long id) {
+        return eventoRepository.findById(id);
     }
 } 

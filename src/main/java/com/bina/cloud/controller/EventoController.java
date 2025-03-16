@@ -1,7 +1,7 @@
 package com.bina.cloud.controller;
 
 import com.bina.cloud.model.Evento;
-import com.bina.cloud.repository.EventoRepository;
+import com.bina.cloud.service.EventoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -12,7 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -22,7 +21,7 @@ import java.util.List;
 @Tag(name = "Eventos", description = "API para gerenciamento de eventos")
 public class EventoController {
 
-    private final EventoRepository eventoRepository;
+    private final EventoService eventoService;
 
     @PostMapping
     @Operation(summary = "Criar novo evento", description = "Cria um novo evento com os dados fornecidos")
@@ -34,9 +33,7 @@ public class EventoController {
             @Parameter(description = "Dados do evento a ser criado", required = true)
             @RequestBody Evento evento) {
         log.info("Received new event: {}", evento);
-        evento.setTimestamp(LocalDateTime.now());
-        Evento savedEvento = eventoRepository.save(evento);
-        return ResponseEntity.ok(savedEvento);
+        return ResponseEntity.ok(eventoService.criarEvento(evento));
     }
 
     @GetMapping
@@ -45,7 +42,7 @@ public class EventoController {
         @ApiResponse(responseCode = "200", description = "Lista de eventos retornada com sucesso")
     })
     public ResponseEntity<List<Evento>> getAllEventos() {
-        return ResponseEntity.ok(eventoRepository.findAll());
+        return ResponseEntity.ok(eventoService.listarEventos());
     }
 
     @GetMapping("/{id}")
@@ -57,7 +54,7 @@ public class EventoController {
     public ResponseEntity<Evento> getEventoById(
             @Parameter(description = "ID do evento a ser buscado", required = true)
             @PathVariable Long id) {
-        return eventoRepository.findById(id)
+        return eventoService.buscarPorId(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
