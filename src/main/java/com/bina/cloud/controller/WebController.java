@@ -15,13 +15,18 @@ public class WebController {
 
     private final EventoRepository eventoRepository;
 
-    @GetMapping("/")
-    public String index(Model model) {
+    @GetMapping("/eventos")
+    public String eventos(Model model) {
         model.addAttribute("eventos", 
             eventoRepository.findAll(
                 PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "timestamp"))
             ).getContent()
         );
-        return "index";
+        return "eventos";
+    }
+
+    @GetMapping("/monitor")
+    public String monitor() {
+        return "monitor";
     }
 } 
