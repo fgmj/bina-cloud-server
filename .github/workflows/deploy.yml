@@ -1,0 +1,30 @@
+name: Deploy Automático
+
+on:
+  push:
+    branches:
+      - main  # Ou a branch desejada
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar conexão SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Fazer deploy no servidor
+        run: |
+          ssh -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            cd /home/ubuntu
+            #git pull origin main  # Atualiza o código
+            #chmod +x deploy.sh
+            ./deploy.sh  # Executa o script de deploy
+          EOF
