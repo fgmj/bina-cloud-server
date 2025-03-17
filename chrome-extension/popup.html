@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Bina Cloud Monitor</title>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      width: 400px;
+      padding: 10px;
+      font-family: Arial, sans-serif;
+      margin: 0;
+    }
+    
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding: 10px;
+      background-color: #f8f9fa;
+      border-bottom: 1px solid #dee2e6;
+    }
+    
+    .title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #212529;
+    }
+    
+    .status {
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    
+    .connected {
+      background-color: #28a745;
+      color: white;
+    }
+    
+    .disconnected {
+      background-color: #dc3545;
+      color: white;
+    }
+    
+    .advanced-settings {
+      margin: 15px 10px;
+    }
+    
+    .advanced-settings-toggle {
+      background: none;
+      border: none;
+      color: #6c757d;
+      cursor: pointer;
+      font-size: 12px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    .advanced-settings-toggle:hover {
+      color: #495057;
+    }
+    
+    .advanced-settings-content {
+      display: none;
+      padding: 10px;
+      margin-top: 10px;
+      background-color: #f8f9fa;
+      border-radius: 4px;
+      border: 1px solid #dee2e6;
+    }
+    
+    .advanced-settings-content.visible {
+      display: block;
+    }
+    
+    .settings input {
+      width: 250px;
+      padding: 8px;
+      margin-right: 5px;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    
+    .settings button {
+      padding: 8px 15px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    
+    .settings button:hover {
+      background-color: #0056b3;
+    }
+    
+    .saved-url {
+      font-size: 12px;
+      color: #6c757d;
+      margin-top: 8px;
+    }
+    
+    .event-list {
+      max-height: 300px;
+      overflow-y: auto;
+      margin: 0 10px;
+    }
+    
+    .event {
+      padding: 10px;
+      margin-bottom: 8px;
+      background-color: white;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+    }
+    
+    .event:hover {
+      background-color: #f8f9fa;
+    }
+    
+    .event strong {
+      color: #212529;
+      font-size: 14px;
+    }
+    
+    .event small {
+      color: #6c757d;
+      display: block;
+      margin-top: 4px;
+      font-size: 12px;
+    }
+
+    /* Scrollbar personalizada */
+    .event-list::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .event-list::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 4px;
+    }
+
+    .event-list::-webkit-scrollbar-thumb {
+      background: #888;
+      border-radius: 4px;
+    }
+
+    .event-list::-webkit-scrollbar-thumb:hover {
+      background: #555;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="title">Bina Cloud Monitor</div>
+    <div id="connectionStatus" class="status disconnected">Desconectado</div>
+  </div>
+  
+  <div class="advanced-settings">
+    <button class="advanced-settings-toggle">
+      <span class="toggle-icon">▶</span> Configurações avançadas
+    </button>
+    <div class="advanced-settings-content">
+      <div class="settings">
+        <input type="text" id="serverUrl" placeholder="URL do servidor">
+        <button id="saveUrl">Salvar</button>
+        <div class="saved-url">URL atual: <span id="savedUrl"></span></div>
+      </div>
+    </div>
+  </div>
+  
+  <div id="eventList" class="event-list"></div>
+  
+  <!-- Scripts -->
+  <script src="lib/sockjs.min.js"></script>
+  <script src="lib/stomp.min.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html> 

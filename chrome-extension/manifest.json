@@ -1,0 +1,30 @@
+{
+  "manifest_version": 2,
+  "name": "Bina Cloud Monitor",
+  "version": "1.0",
+  "description": "Monitor de eventos do Bina Cloud Server",
+  "permissions": [
+    "storage",
+    "notifications",
+    "tabs",
+    "https://bina.fernandojunior.com.br/*"
+  ],
+  "browser_action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "images/icon16.png",
+      "48": "images/icon48.png",
+      "128": "images/icon128.png"
+    }
+  },
+  "background": {
+    "page": "background.html",
+    "persistent": true
+  },
+  "icons": {
+    "16": "images/icon16.png",
+    "48": "images/icon48.png",
+    "128": "images/icon128.png"
+  },
+  "content_security_policy": "script-src 'self' https://bina.fernandojunior.com.br; object-src 'self'"
+} 
