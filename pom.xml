@@ -13,7 +13,7 @@
 
     <groupId>com.bina.cloud</groupId>
     <artifactId>bina-cloud-server</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.2-SNAPSHOT</version>
     <name>bina-cloud-server</name>
     <description>Spring Boot backend for Android event notifications</description>
 

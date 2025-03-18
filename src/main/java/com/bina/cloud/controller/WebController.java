@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 @RequiredArgsConstructor
 public class WebController {
-
     private final EventoRepository eventoRepository;
 
     @GetMapping("/eventos")
@@ -28,5 +27,10 @@ public class WebController {
     @GetMapping("/monitor")
     public String monitor() {
         return "monitor";
+    }
+
+    @GetMapping("/dashboard")
+    public String dashboard() {
+        return "dashboard/index";
     }
 } 
