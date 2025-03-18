@@ -16,11 +16,9 @@ public class WebController {
 
     @GetMapping("/eventos")
     public String eventos(Model model) {
-        model.addAttribute("eventos", 
-            eventoRepository.findAll(
-                PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "timestamp"))
-            ).getContent()
-        );
+        model.addAttribute("eventos",
+                eventoRepository.findAll(
+                        PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "timestamp"))).getContent());
         return "eventos";
     }
 
@@ -29,8 +27,13 @@ public class WebController {
         return "monitor";
     }
 
+    @GetMapping("/index")
+    public String index() {
+        return "index";
+    }
+
     @GetMapping("/dashboard")
     public String dashboard() {
-        return "dashboard/index";
+        return "dashboard";
     }
-} 
+}

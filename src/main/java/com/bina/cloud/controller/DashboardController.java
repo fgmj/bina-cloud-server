@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -25,10 +26,11 @@ public class DashboardController {
     @GetMapping("/stats")
     @Operation(summary = "Obter estatísticas", description = "Retorna as estatísticas atuais para o dashboard")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Estatísticas retornadas com sucesso")
+            @ApiResponse(responseCode = "200", description = "Estatísticas retornadas com sucesso")
     })
-    public ResponseEntity<DashboardStatsDTO> getStats() {
-        log.debug("Obtendo estatísticas do dashboard");
-        return ResponseEntity.ok(dashboardService.getStats());
+    public ResponseEntity<DashboardStatsDTO> getStats(@RequestParam(defaultValue = "today") String period) {
+        log.debug("Obtendo estatísticas do dashboard para o período: {}", period);
+        DashboardStatsDTO stats = dashboardService.getStats(period);
+        return ResponseEntity.ok(stats);
     }
-} 
+}

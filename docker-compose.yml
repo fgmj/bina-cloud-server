@@ -10,8 +10,10 @@ services:
     volumes:
       - h2-data:/app/data
     environment:
-      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-dev}
+      - SPRING_PROFILES_ACTIVE=${ENV:-dev}
       - JAVA_OPTS=${JAVA_OPTS:--Xmx192m -Xms96m -XX:+UseSerialGC -XX:MaxRAM=256m -Xss512k -XX:MaxMetaspaceSize=96m -XX:CompressedClassSpaceSize=32m -Xmn64m -XX:+UseG1GC -XX:+UseStringDeduplication}
+      - DB_USERNAME=${DB_USERNAME:-sa}
+      - DB_PASSWORD=${DB_PASSWORD:-}
     deploy:
       resources:
         limits:
@@ -19,7 +21,7 @@ services:
         reservations:
           memory: 256m
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -33,7 +35,7 @@ services:
       - app-network
 
   nginx:
-    build: 
+    build:
       context: ./nginx
       dockerfile: Dockerfile
     ports:
@@ -43,7 +45,7 @@ services:
       - ssl-certs:/etc/nginx/ssl
     environment:
       - NGINX_HOST=${NGINX_HOST:-localhost}
-      - ENVIRONMENT=${ENVIRONMENT:-dev}
+      - ENVIRONMENT=${ENV:-dev}
       - CERTBOT_EMAIL=${CERTBOT_EMAIL}
     deploy:
       resources:
@@ -56,11 +58,11 @@ services:
     networks:
       - app-network
 
-
 volumes:
-  h2-data: 
+  h2-data:
   ssl-certs:
+
 
 networks:
   app-network:
-    driver: bridge 
+    driver: bridge

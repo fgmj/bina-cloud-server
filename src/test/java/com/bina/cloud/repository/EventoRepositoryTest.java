@@ -1,5 +1,6 @@
 package com.bina.cloud.repository;
 
+import com.bina.cloud.model.EventType;
 import com.bina.cloud.model.Evento;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,8 +23,8 @@ class EventoRepositoryTest {
     private Evento createTestEvento() {
         Evento evento = new Evento();
         evento.setDescription("Test Event");
-        evento.setDeviceId("test-device-001");
-        evento.setEventType("TEST");
+        evento.setDeviceId("tesasdft-device-001");
+        evento.setEventType(EventType.ANSWERED);
         evento.setTimestamp(LocalDateTime.now());
         evento.setAdditionalData("{\"test\": \"data\"}");
         return evento;
@@ -103,4 +104,4 @@ class EventoRepositoryTest {
         Optional<Evento> deletedEvento = eventoRepository.findById(savedEvento.getId());
         assertThat(deletedEvento).isEmpty();
     }
-} 
+}

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,48 +14,64 @@
             margin: 20px;
             background-color: #f5f5f5;
         }
+
         .container {
             max-width: 800px;
             margin: 0 auto;
             background-color: white;
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
+
         .event-list {
             margin-top: 20px;
             max-height: 600px;
             overflow-y: auto;
         }
+
         .event-item {
             padding: 15px;
             border-bottom: 1px solid #eee;
             background-color: #fff;
             margin-bottom: 10px;
             border-radius: 4px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             animation: fadeIn 0.5s ease-in;
         }
+
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
+
         .event-item:last-child {
             border-bottom: none;
         }
+
         .event-title {
             font-weight: bold;
             color: #333;
             margin-bottom: 5px;
         }
+
         .event-info {
             color: #666;
             font-size: 0.9em;
         }
+
         .event-time {
             color: #888;
             font-size: 0.85em;
         }
+
         .event-type {
             background-color: #e9ecef;
             padding: 2px 8px;
@@ -62,6 +79,7 @@
             font-size: 0.85em;
             color: #495057;
         }
+
         .notification {
             position: fixed;
             top: 20px;
@@ -70,15 +88,22 @@
             background-color: #4CAF50;
             color: white;
             border-radius: 4px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
             display: none;
             z-index: 1000;
             animation: slideIn 0.3s ease-out;
         }
+
         @keyframes slideIn {
-            from { transform: translateX(100%); }
-            to { transform: translateX(0); }
+            from {
+                transform: translateX(100%);
+            }
+
+            to {
+                transform: translateX(0);
+            }
         }
+
         .connection-status {
             position: fixed;
             bottom: 20px;
@@ -87,16 +112,19 @@
             border-radius: 4px;
             font-size: 0.9em;
         }
+
         .connection-status.connected {
             background-color: #4CAF50;
             color: white;
         }
+
         .connection-status.disconnected {
             background-color: #f44336;
             color: white;
         }
     </style>
 </head>
+
 <body class="bg-light">
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
         <div class="container">
@@ -130,19 +158,19 @@
         // Conectar ao WebSocket
         const socket = new SockJS('/ws');
         const stompClient = Stomp.over(socket);
-        
+
         // Configurar logs do STOMP para debug
-        stompClient.debug = function(str) {
+        stompClient.debug = function (str) {
             console.log(str);
         };
 
         function connect() {
-            stompClient.connect({}, 
-                function(frame) {
+            stompClient.connect({},
+                function (frame) {
                     console.log('Connected to WebSocket:', frame);
                     updateConnectionStatus(true);
-                    
-                    stompClient.subscribe('/topic/events', function(message) {
+
+                    stompClient.subscribe('/topic/events', function (message) {
                         console.log('Received message:', message);
                         try {
                             const event = JSON.parse(message.body);
@@ -153,8 +181,8 @@
                             console.log('Message body:', message.body);
                         }
                     });
-                }, 
-                function(error) {
+                },
+                function (error) {
                     console.error('WebSocket connection error:', error);
                     updateConnectionStatus(false);
                     // Tentar reconectar após 5 segundos
@@ -226,14 +254,14 @@
             const notification = document.getElementById('notification');
             notification.textContent = `Novo evento: ${title}`;
             notification.style.display = 'block';
-            
+
             setTimeout(() => {
                 notification.style.display = 'none';
             }, 5000);
         }
 
         // Adicionar tratamento para quando a página for fechada
-        window.addEventListener('beforeunload', function() {
+        window.addEventListener('beforeunload', function () {
             if (stompClient !== null) {
                 stompClient.disconnect();
             }
@@ -242,4 +270,5 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
-</html> 
+
+</html>

@@ -1,5 +1,6 @@
 package com.bina.cloud.controller;
 
+import com.bina.cloud.model.EventType;
 import com.bina.cloud.model.Evento;
 import com.bina.cloud.repository.EventoRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,7 +42,7 @@ class EventoControllerTest {
         Evento evento = new Evento();
         evento.setDescription("Test Event");
         evento.setDeviceId("test-device-001");
-        evento.setEventType("TEST");
+        evento.setEventType(EventType.BUSY);
         evento.setAdditionalData("{\"test\": \"data\"}");
         return evento;
     }
@@ -97,4 +98,4 @@ class EventoControllerTest {
         mockMvc.perform(get("/api/eventos/{id}", 999L))
                 .andExpect(status().isNotFound());
     }
-} 
+}

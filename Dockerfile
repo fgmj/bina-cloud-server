@@ -16,11 +16,15 @@ ENV JAVA_OPTS="-Xmx256m -Xms128m -XX:+UseSerialGC -XX:MaxRAM=256m -Xss512k -XX:M
 
 # Add health check dependencies
 RUN apt-get update && \
-    apt-get install -y curl && \
-    rm -rf /var/lib/apt/lists/*
+  apt-get install -y curl && \
+  rm -rf /var/lib/apt/lists/*
 
-# Create volume for H2 database
-VOLUME /app/data
+# Create directories and set permissions
+RUN mkdir -p /app/data /app/logs && \
+  chmod 755 /app/data /app/logs
+
+# Create volumes
+VOLUME ["/app/data", "/app/logs"]
 
 # Add health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \

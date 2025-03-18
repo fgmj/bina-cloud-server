@@ -1,13 +1,14 @@
 // Configuração inicial
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Configurar momento.js para português
     moment.locale('pt-br');
-    
+
     // Inicializar componentes
     setupDarkMode();
     setupCurrentTime();
     initializeCharts();
     setupWebSocket();
+    setupPeriodFilter();
     loadInitialData();
 });
 
@@ -15,11 +16,21 @@ document.addEventListener('DOMContentLoaded', function() {
 function setupDarkMode() {
     const darkModeSwitch = document.getElementById('darkModeSwitch');
     const isDarkMode = localStorage.getItem('darkMode') === 'true';
-    
+
     darkModeSwitch.checked = isDarkMode;
     document.body.classList.toggle('dark-mode', isDarkMode);
-    
-    darkModeSwitch.addEventListener('change', function() {
+
+    // Atualizar classe active no menu
+    const currentPath = window.location.pathname;
+    document.querySelectorAll('.navbar-item').forEach(item => {
+        if (item.getAttribute('href') === currentPath) {
+            item.classList.add('active');
+        } else {
+            item.classList.remove('active');
+        }
+    });
+
+    darkModeSwitch.addEventListener('change', function () {
         document.body.classList.toggle('dark-mode');
         localStorage.setItem('darkMode', this.checked);
         updateChartsTheme(this.checked);
@@ -32,7 +43,7 @@ function setupCurrentTime() {
         const currentTime = document.getElementById('currentTime');
         currentTime.textContent = moment().format('DD/MM/YYYY HH:mm:ss');
     }
-    
+
     updateTime();
     setInterval(updateTime, 1000);
 }
@@ -40,18 +51,18 @@ function setupCurrentTime() {
 // Configuração do WebSocket
 function setupWebSocket() {
     const ws = new WebSocket('wss://bina.fernandojunior.com.br/ws');
-    
+
     ws.onopen = () => {
         console.log('Conexão WebSocket estabelecida');
         updateConnectionStatus(true);
     };
-    
+
     ws.onclose = () => {
         console.log('Conexão WebSocket fechada');
         updateConnectionStatus(false);
         setTimeout(() => setupWebSocket(), 5000); // Tentar reconectar após 5 segundos
     };
-    
+
     ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
         handleWebSocketMessage(data);
@@ -79,7 +90,7 @@ function initializeCharts() {
             toolbar: { show: false }
         },
         xaxis: {
-            categories: Array.from({length: 24}, (_, i) => `${i}h`),
+            categories: Array.from({ length: 24 }, (_, i) => `${i}h`),
             title: { text: 'Hora do dia' }
         },
         yaxis: {
@@ -95,13 +106,13 @@ function initializeCharts() {
             }
         }
     };
-    
+
     const callsPerHourChart = new ApexCharts(
         document.querySelector('#callsPerHourChart'),
         callsPerHourOptions
     );
     callsPerHourChart.render();
-    
+
     // Gráfico de distribuição por dispositivo
     const deviceDistributionOptions = {
         series: [],
@@ -122,13 +133,13 @@ function initializeCharts() {
             }
         }]
     };
-    
+
     const deviceDistributionChart = new ApexCharts(
         document.querySelector('#deviceDistributionChart'),
         deviceDistributionOptions
     );
     deviceDistributionChart.render();
-    
+
     // Heatmap de horários de pico
     const peakHoursOptions = {
         series: [
@@ -155,22 +166,92 @@ function initializeCharts() {
         ],
         chart: {
             height: 300,
-            type: 'heatmap'
+            type: 'heatmap',
+            toolbar: { show: false }
+        },
+        plotOptions: {
+            heatmap: {
+                shadeIntensity: 0.5,
+                radius: 0,
+                colorScale: {
+                    ranges: [
+                        {
+                            from: 0,
+                            to: 0,
+                            name: 'Nenhuma',
+                            color: '#EFEFEF'
+                        },
+                        {
+                            from: 0.1,
+                            to: 2,
+                            name: 'Baixo',
+                            color: '#90CAF9'
+                        },
+                        {
+                            from: 2.1,
+                            to: 5,
+                            name: 'Médio',
+                            color: '#42A5F5'
+                        },
+                        {
+                            from: 5.1,
+                            to: 10,
+                            name: 'Alto',
+                            color: '#1976D2'
+                        },
+                        {
+                            from: 10.1,
+                            to: 1000,
+                            name: 'Muito Alto',
+                            color: '#0D47A1'
+                        }
+                    ]
+                }
+            }
         },
         dataLabels: {
-            enabled: false
+            enabled: true,
+            style: {
+                colors: ['#fff']
+            },
+            formatter: function (val) {
+                return val.toFixed(1);
+            }
+        },
+        title: {
+            text: 'Horários de Pico (média dos últimos 3 meses)',
+            align: 'center',
+            style: {
+                fontSize: '14px'
+            }
         },
         xaxis: {
-            categories: Array.from({length: 24}, (_, i) => `${i}h`)
+            categories: Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}h`),
+            labels: {
+                rotate: 0
+            }
+        },
+        yaxis: {
+            title: {
+                text: 'Dia da Semana'
+            }
+        },
+        tooltip: {
+            y: {
+                formatter: function (value) {
+                    if (value === 0) return 'Nenhuma chamada';
+                    return value.toFixed(1) + ' chamadas (média semanal)';
+                }
+            }
         }
     };
-    
+
     const peakHoursChart = new ApexCharts(
         document.querySelector('#peakHoursHeatmap'),
         peakHoursOptions
     );
     peakHoursChart.render();
-    
+
     // Análise temporal
     const temporalAnalysisOptions = {
         series: [{
@@ -178,24 +259,56 @@ function initializeCharts() {
             data: []
         }],
         chart: {
-            type: 'bar',
+            type: 'area',
             height: 300,
             toolbar: { show: false }
         },
+        dataLabels: {
+            enabled: false
+        },
         xaxis: {
-            type: 'datetime'
+            type: 'datetime',
+            labels: {
+                formatter: function (val) {
+                    return moment(val).format('DD/MM')
+                }
+            },
+            title: {
+                text: 'Data'
+            }
         },
         yaxis: {
-            title: { text: 'Número de chamadas' }
+            title: { text: 'Número de chamadas' },
+            min: 0,
+            forceNiceScale: true
+        },
+        stroke: {
+            curve: 'smooth',
+            width: 2
+        },
+        fill: {
+            type: 'gradient',
+            gradient: {
+                shadeIntensity: 1,
+                opacityFrom: 0.7,
+                opacityTo: 0.3
+            }
+        },
+        tooltip: {
+            x: {
+                formatter: function (val) {
+                    return moment(val).format('DD/MM/YYYY')
+                }
+            }
         }
     };
-    
+
     const temporalAnalysisChart = new ApexCharts(
         document.querySelector('#temporalAnalysisChart'),
         temporalAnalysisOptions
     );
     temporalAnalysisChart.render();
-    
+
     // Armazenar referências dos gráficos
     window.dashboardCharts = {
         callsPerHour: callsPerHourChart,
@@ -205,17 +318,52 @@ function initializeCharts() {
     };
 }
 
-// Carregar dados iniciais
-function loadInitialData() {
-    fetch('/api/calls/stats')
-        .then(response => response.json())
+// Configuração do filtro de período
+function setupPeriodFilter() {
+    const periodButtons = document.querySelectorAll('[data-period]');
+    let currentPeriod = 'today';
+
+    periodButtons.forEach(button => {
+        button.addEventListener('click', function () {
+            const period = this.dataset.period;
+            currentPeriod = period;
+
+            // Atualizar visual dos botões
+            periodButtons.forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+
+            // Recarregar dados com o novo período
+            loadDashboardData(period);
+        });
+    });
+
+    // Ativar o botão "Hoje" por padrão
+    periodButtons[0].classList.add('active');
+}
+
+// Carregar dados do dashboard
+function loadDashboardData(period) {
+    const params = new URLSearchParams({ period });
+
+    fetch(`/api/dashboard/stats?${params}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
             updateDashboardStats(data);
         })
         .catch(error => {
             console.error('Erro ao carregar dados:', error);
-            addAlert('Erro ao carregar dados iniciais', 'error');
+            addAlert('Erro ao carregar dados do dashboard', 'error');
         });
+}
+
+// Carregar dados iniciais
+function loadInitialData() {
+    loadDashboardData('today');
 }
 
 // Atualizar estatísticas do dashboard
@@ -225,16 +373,16 @@ function updateDashboardStats(data) {
     document.getElementById('answeredCalls').textContent = data.answeredCalls;
     document.getElementById('missedCalls').textContent = data.missedCalls;
     document.getElementById('answerRate').textContent = `${data.answerRate}%`;
-    
+
     // Atualizar gráficos
     updateCallsPerHourChart(data.callsPerHour);
     updateDeviceDistributionChart(data.deviceStats);
     updatePeakHoursChart(data.peakHours);
     updateTemporalAnalysisChart(data.temporalData);
-    
+
     // Atualizar métricas de pico
     updatePeakMetrics(data.peakMetrics);
-    
+
     // Atualizar lista de chamadas recentes
     updateRecentCallsList(data.recentCalls);
 }
@@ -257,14 +405,55 @@ function updateDeviceDistributionChart(data) {
 
 // Atualizar heatmap de horários de pico
 function updatePeakHoursChart(data) {
-    window.dashboardCharts.peakHours.updateSeries(data);
+    console.log('Dados recebidos para o heatmap:', data);
+    const formattedData = data.map((dayData, index) => ({
+        name: ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'][index],
+        data: dayData.map((value, hour) => ({
+            x: `${String(hour).padStart(2, '0')}h`,
+            y: value
+        }))
+    }));
+
+    const options = {
+        xaxis: {
+            type: 'category',
+            categories: Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}h`),
+            labels: {
+                rotate: -45,
+                style: {
+                    fontSize: '12px'
+                }
+            }
+        }
+    };
+
+    console.log('Dados formatados para o heatmap:', formattedData);
+    window.dashboardCharts.peakHours.updateOptions(options);
+    window.dashboardCharts.peakHours.updateSeries(formattedData);
 }
 
 // Atualizar gráfico de análise temporal
 function updateTemporalAnalysisChart(data) {
+    const formattedData = data.map(item => ({
+        x: item.timestamp,
+        y: item.value
+    }));
+
+    window.dashboardCharts.temporalAnalysis.updateOptions({
+        xaxis: {
+            min: moment().subtract(3, 'months').startOf('day').valueOf(),
+            max: moment().endOf('day').valueOf(),
+            labels: {
+                formatter: function (val) {
+                    return moment(val).format('DD/MM')
+                }
+            }
+        }
+    });
+
     window.dashboardCharts.temporalAnalysis.updateSeries([{
         name: 'Chamadas',
-        data: data
+        data: formattedData
     }]);
 }
 
@@ -279,7 +468,7 @@ function updatePeakMetrics(data) {
 function updateRecentCallsList(calls) {
     const tbody = document.getElementById('recentCallsList');
     tbody.innerHTML = '';
-    
+
     calls.forEach(call => {
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -311,9 +500,9 @@ function addAlert(message, type = 'info') {
         <strong>${moment().format('HH:mm:ss')}</strong><br>
         ${message}
     `;
-    
+
     alertsContainer.insertBefore(alertElement, alertsContainer.firstChild);
-    
+
     // Limitar número de alertas
     if (alertsContainer.children.length > 10) {
         alertsContainer.removeChild(alertsContainer.lastChild);
@@ -331,7 +520,7 @@ function updateChartsTheme(isDarkMode) {
         mode: isDarkMode ? 'dark' : 'light',
         palette: 'palette1'
     };
-    
+
     Object.values(window.dashboardCharts).forEach(chart => {
         chart.updateOptions({
             theme: theme
@@ -343,14 +532,17 @@ function updateChartsTheme(isDarkMode) {
 function handleWebSocketMessage(data) {
     switch (data.type) {
         case 'CALL_EVENT':
-            updateDashboardStats(data.stats);
+            // Recarregar dados do dashboard após novo evento
+            const activePeriodButton = document.querySelector('[data-period].active');
+            const currentPeriod = activePeriodButton ? activePeriodButton.dataset.period : 'today';
+            loadDashboardData(currentPeriod);
             addAlert(`Nova chamada de ${data.phoneNumber}`, 'info');
             break;
-            
+
         case 'DEVICE_STATUS':
             updateDeviceStatus(data);
             break;
-            
+
         case 'ALERT':
             addAlert(data.message, data.alertType);
             break;
@@ -361,9 +553,9 @@ function handleWebSocketMessage(data) {
 function updateDeviceStatus(data) {
     const deviceStats = document.getElementById('deviceStats');
     const deviceElement = deviceStats.querySelector(`[data-device="${data.deviceId}"]`);
-    
+
     if (deviceElement) {
-        deviceElement.querySelector('.status').className = 
+        deviceElement.querySelector('.status').className =
             `status ${data.online ? 'connected' : 'disconnected'}`;
     } else {
         const newDevice = document.createElement('div');

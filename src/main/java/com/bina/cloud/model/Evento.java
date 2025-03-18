@@ -1,39 +1,39 @@
 package com.bina.cloud.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import jakarta.persistence.Column;
-import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.*;
 import lombok.Data;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "eventos")
 @Data
+@Entity
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@Table(name = "eventos")
 public class Evento {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "evento_seq")
-    @SequenceGenerator(name = "evento_seq", sequenceName = "evento_sequence", allocationSize = 1)
-    @Column(name = "id", nullable = false, updatable = false)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
-    @Column(length = 255)
-    private String description;
-    
-    private LocalDateTime timestamp;
-    
-    @Column(length = 255)
-    private String deviceId;
-    
-    @Column(length = 255)
-    private String eventType;
-    
-    @Column(length = 255)
-    private String additionalData;
-    
-    @Column(length = 20)
+
+    @Column(nullable = false)
     private String phoneNumber;
-} 
+
+    @Column(nullable = false)
+    private LocalDateTime timestamp;
+
+    @Column(nullable = false)
+    private String deviceId;
+
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private EventType eventType;
+
+    private String description;
+
+    @Column(columnDefinition = "TEXT")
+    private String additionalData;
+}
