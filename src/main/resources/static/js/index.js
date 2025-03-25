@@ -130,6 +130,7 @@ function loadDashboardData() {
 
 // Função para atualizar estatísticas do dashboard
 function updateDashboardStats(data) {
+    console.log('[Dashboard] Updating stats:', data);
     const elements = {
         totalCalls: document.getElementById('totalCalls'),
         answeredCalls: document.getElementById('answeredCalls'),
@@ -189,29 +190,93 @@ function updateMonitorTable(calls) {
 }
 
 // Função para lidar com novos eventos
-function handleNewEvent(event) {
-    console.log('[WebSocket] Processing event:', event);
+function handleNewEvent(message) {
+    console.log('[WebSocket] Processing message:', message);
     eventCount++;
 
-    // Atualizar dados do dashboard
-    loadDashboardData();
+    try {
+        // O evento pode vir diretamente ou dentro de message.event
+        const event = message.event || message;
+        console.log('[WebSocket] Parsed event:', event);
 
-    // Mostrar notificação
-    if (event.phoneNumber) {
-        showNotification(`Nova chamada de ${event.phoneNumber}`);
+        // Atualizar dados do dashboard
+        loadDashboardData();
+
+        // Atualizar a tabela de monitoramento imediatamente
+        if (event.phoneNumber) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${event.phoneNumber || 'N/A'}</td>
+                <td>${moment(event.timestamp).format('DD/MM/YYYY HH:mm:ss')}</td>
+                <td><span class="badge ${getStatusBadgeClass(event.eventType)}">${getStatusText(event.eventType)}</span></td>
+                <td>${event.deviceId || 'N/A'}</td>
+            `;
+
+            const monitorTable = document.getElementById('monitorTable');
+            if (monitorTable) {
+                monitorTable.insertBefore(row, monitorTable.firstChild);
+                // Manter apenas as últimas 10 linhas
+                while (monitorTable.children.length > 10) {
+                    monitorTable.removeChild(monitorTable.lastChild);
+                }
+            }
+        }
+
+        // Mostrar notificação
+        const title = event.phoneNumber
+            ? `Nova chamada de ${event.phoneNumber}`
+            : 'Nova chamada recebida';
+        showNotification(title);
+
+        // Atualizar lista de chamadas recentes
+        const recentCallsList = document.getElementById('recentCallsList');
+        if (recentCallsList && event.phoneNumber) {
+            const callItem = document.createElement('div');
+            callItem.className = 'call-item';
+            callItem.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>${event.phoneNumber}</strong>
+                        <br>
+                        <small class="text-muted">${moment(event.timestamp).format('DD/MM/YYYY HH:mm:ss')}</small>
+                    </div>
+                    <span class="badge ${getStatusBadgeClass(event.eventType)}">${getStatusText(event.eventType)}</span>
+                </div>
+            `;
+            recentCallsList.insertBefore(callItem, recentCallsList.firstChild);
+            // Manter apenas os últimos 10 itens
+            while (recentCallsList.children.length > 10) {
+                recentCallsList.removeChild(recentCallsList.lastChild);
+            }
+        }
+
+    } catch (error) {
+        console.error('[WebSocket] Error processing event:', error);
     }
 }
 
 // Função para mostrar notificação
 function showNotification(title) {
+    console.log('[Notification] Showing notification:', title);
     const notification = document.getElementById('notification');
     if (notification) {
         notification.textContent = title;
         notification.style.display = 'block';
+        notification.className = 'alert alert-info alert-dismissible fade show notification';
+
+        // Adicionar botão de fechar
+        const closeButton = document.createElement('button');
+        closeButton.type = 'button';
+        closeButton.className = 'btn-close';
+        closeButton.setAttribute('data-bs-dismiss', 'alert');
+        closeButton.setAttribute('aria-label', 'Close');
+        notification.appendChild(closeButton);
 
         setTimeout(() => {
             notification.style.display = 'none';
         }, 5000);
+    } else {
+        console.warn('[Notification] Could not find notification element');
     }
 }
 

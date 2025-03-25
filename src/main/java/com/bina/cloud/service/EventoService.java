@@ -19,7 +19,7 @@ import java.util.Optional;
 public class EventoService {
 
     private final EventoRepository eventoRepository;
-    private final WebSocketService webSocketService;
+    private final NotificationService notificationService;
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
     @Autowired
     private DispositivoService dispositivoService;
@@ -37,7 +37,7 @@ public class EventoService {
         dispositivoService.atualizarUltimaConexao(evento.getDeviceId());
 
         // Notificar via WebSocket
-        webSocketService.notifyNewEvent(eventoSalvo);
+        notificationService.notifyNewEvent(eventoSalvo);
 
         return eventoSalvo;
     }

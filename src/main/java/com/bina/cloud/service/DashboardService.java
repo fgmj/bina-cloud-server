@@ -343,11 +343,20 @@ public class DashboardService {
 
                 double answerRate = totalCalls > 0 ? (answeredCalls * 100.0 / totalCalls) : 0;
 
-                List<Evento> recentCalls = eventosFiltrados.stream()
+                // Converter eventos para CallDTO
+                List<CallDTO> recentCalls = eventosFiltrados.stream()
                                 .filter(e -> e.getEventType() == EventType.ANSWERED
                                                 || e.getEventType() == EventType.MISSED)
                                 .sorted(Comparator.comparing(Evento::getTimestamp).reversed())
                                 .limit(10)
+                                .map(e -> CallDTO.builder()
+                                                .phoneNumber(e.getPhoneNumber())
+                                                .timestamp(e.getTimestamp().toInstant(ZoneOffset.UTC).toEpochMilli())
+                                                .duration(parseAdditionalData(e.getAdditionalData())
+                                                                .getOrDefault("duration", "-"))
+                                                .status(e.getEventType())
+                                                .device(e.getDeviceId())
+                                                .build())
                                 .collect(Collectors.toList());
 
                 // Obter dispositivos ativos nos últimos 3 minutos
