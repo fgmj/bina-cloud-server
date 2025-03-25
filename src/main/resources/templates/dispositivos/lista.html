@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layouts/default}">
+
+<head>
+    <title>Dispositivos - Bina Cloud</title>
+    <th:block layout:fragment="css">
+        <style>
+            .device-status {
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                display: inline-block;
+                margin-right: 5px;
+            }
+
+            .device-status.active {
+                background-color: var(--success-color);
+            }
+
+            .device-status.inactive {
+                background-color: var(--danger-color);
+            }
+
+            .last-connection {
+                font-size: var(--font-size-sm);
+                color: var(--text-muted);
+            }
+
+            .actions .btn {
+                padding: 0.25rem 0.5rem;
+                font-size: var(--font-size-sm);
+            }
+        </style>
+    </th:block>
+</head>
+
+<body>
+    <main layout:fragment="content">
+        <div class="container-fluid py-4">
+            <!-- Alertas -->
+            <div th:if="${mensagem}" class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="fas fa-check-circle me-2"></i>
+                <span th:text="${mensagem}"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+
+            <div th:if="${erro}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                <span th:text="${erro}"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+
+            <!-- Cabeçalho -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">Dispositivos</h1>
+                <a th:href="@{/dispositivos/novo}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Novo Dispositivo
+                </a>
+            </div>
+
+            <!-- Lista de Dispositivos -->
+            <div class="card">
+                <div class="card-body">
+                    <div th:if="${#lists.isEmpty(dispositivos)}" class="text-center py-5">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">Nenhum dispositivo cadastrado.</p>
+                        <a th:href="@{/dispositivos/novo}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Cadastrar Dispositivo
+                        </a>
+                    </div>
+
+                    <div th:if="${not #lists.isEmpty(dispositivos)}" class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th style="width: 100px">Status</th>
+                                    <th style="width: 200px">ID</th>
+                                    <th>Nome</th>
+                                    <th>Tipo</th>
+                                    <th>Localização</th>
+                                    <th>Última Conexão</th>
+                                    <th style="width: 150px">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="dispositivo : ${dispositivos}">
+                                    <td>
+                                        <span th:if="${dispositivo.ativo}" class="badge bg-success">
+                                            <i class="fas fa-check-circle me-1"></i>Ativo
+                                        </span>
+                                        <span th:unless="${dispositivo.ativo}" class="badge bg-secondary">
+                                            <i class="fas fa-times-circle me-1"></i>Inativo
+                                        </span>
+                                    </td>
+                                    <td th:text="${dispositivo.id}"></td>
+                                    <td th:text="${dispositivo.nome}"></td>
+                                    <td th:text="${dispositivo.tipoDispositivo}"></td>
+                                    <td th:text="${dispositivo.localizacao}"></td>
+                                    <td
+                                        th:text="${#temporals.format(dispositivo.lastConnection, 'dd/MM/yyyy HH:mm:ss')}">
+                                    </td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <a th:href="@{/dispositivos/{id}/editar(id=${dispositivo.id})}"
+                                                class="btn btn-sm btn-outline-primary" title="Editar">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button th:if="${dispositivo.ativo}" type="button"
+                                                class="btn btn-sm btn-outline-warning btn-desativar" title="Desativar"
+                                                th:data-id="${dispositivo.id}">
+                                                <i class="fas fa-power-off"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger btn-excluir"
+                                                title="Excluir" th:data-id="${dispositivo.id}"
+                                                th:data-nome="${dispositivo.nome}">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Confirmação de Exclusão -->
+        <div th:replace="~{dispositivos/delete-modal :: deleteModal}"></div>
+    </main>
+
+    <!-- Scripts -->
+    <th:block layout:fragment="scripts">
+        <script th:replace="~{dispositivos/delete-modal :: deleteModalScript}"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                // Configurar botões de desativação
+                document.querySelectorAll('.btn-desativar').forEach(button => {
+                    button.addEventListener('click', function () {
+                        const id = this.getAttribute('data-id');
+                        if (confirm('Tem certeza que deseja desativar este dispositivo?')) {
+                            const form = document.createElement('form');
+                            form.method = 'POST';
+                            form.action = `/dispositivos/${id}/desativar`;
+
+                            const methodInput = document.createElement('input');
+                            methodInput.type = 'hidden';
+                            methodInput.name = '_method';
+                            methodInput.value = 'PATCH';
+                            form.appendChild(methodInput);
+
+                            document.body.appendChild(form);
+                            form.submit();
+                        }
+                    });
+                });
+
+                // Configurar botões de exclusão
+                document.querySelectorAll('.btn-excluir').forEach(button => {
+                    button.addEventListener('click', function () {
+                        const id = this.getAttribute('data-id');
+                        const nome = this.getAttribute('data-nome');
+                        setupDeleteModal(id, nome);
+                        const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+                        deleteModal.show();
+                    });
+                });
+            });
+        </script>
+    </th:block>
+</body>
+
+</html>

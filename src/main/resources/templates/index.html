@@ -1,176 +1,208 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layouts/default}">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Bina Cloud</title>
-    <link rel="stylesheet" href="/dashboard/style.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <th:block layout:fragment="css">
+        <style>
+            .stat-card {
+                transition: transform 0.2s;
+            }
+
+            .stat-card:hover {
+                transform: translateY(-5px);
+            }
+
+            .stat-icon {
+                font-size: 2rem;
+                opacity: 0.8;
+            }
+
+            .chart-container {
+                position: relative;
+                height: 300px;
+                margin-bottom: 1rem;
+            }
+
+            .call-list {
+                max-height: 400px;
+                overflow-y: auto;
+            }
+
+            .call-item {
+                padding: 10px;
+                border-bottom: 1px solid #eee;
+            }
+
+            .status-badge {
+                display: inline-block;
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                margin-right: 5px;
+            }
+
+            .status-active {
+                background-color: #28a745;
+            }
+
+            .status-inactive {
+                background-color: #dc3545;
+            }
+
+            .monitor-table {
+                max-height: 400px;
+                overflow-y: auto;
+            }
+        </style>
+    </th:block>
 </head>
 
 <body>
-    <!-- Menu de navegação -->
-    <nav class="navbar">
-        <div class="navbar-container">
-            <a href="/" class="navbar-brand">
-                <img src="/images/logo.png" alt="Bina Cloud" height="30">
-                Bina Cloud
+    <main layout:fragment="content">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0">Resumo do dia</h1>
+            <a href="/monitor" class="btn btn-primary">
+                <i class="fas fa-desktop"></i> Monitor em Tempo Real
             </a>
-            <div class="navbar-menu">
-                <a href="/dashboard" class="navbar-item active">Dashboard</a>
-                <a href="/devices" class="navbar-item">Dispositivos</a>
-                <a href="/calls" class="navbar-item">Chamadas</a>
-                <a href="/reports" class="navbar-item">Relatórios</a>
-                <a href="/settings" class="navbar-item">Configurações</a>
-                <div class="form-check form-switch ms-3">
-                    <input class="form-check-input" type="checkbox" id="darkModeSwitch">
-                    <label class="form-check-label text-white" for="darkModeSwitch">Modo Escuro</label>
-                </div>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Conteúdo principal -->
-    <div class="container-fluid">
-        <!-- Cabeçalho -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h1 class="h3">Dashboard</h1>
-                    <div class="d-flex align-items-center gap-3">
-                        <div id="currentTime" class="text-muted"></div>
-                        <div id="connectionStatus" class="status"></div>
-                    </div>
-                </div>
-            </div>
         </div>
 
-        <!-- Filtros de período -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="btn-group" role="group" aria-label="Filtro de período">
-                    <button type="button" class="btn btn-outline-primary" data-period="today">Hoje</button>
-                    <button type="button" class="btn btn-outline-primary" data-period="7days">7 dias</button>
-                    <button type="button" class="btn btn-outline-primary" data-period="28days">28 dias</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Cards de métricas -->
-        <div class="row mb-4">
+        <!-- Estatísticas -->
+        <div class="row g-4 mb-4">
             <div class="col-md-3">
-                <div class="card">
+                <div class="card stat-card h-100">
                     <div class="card-body">
-                        <h5 class="card-title">Total de Chamadas</h5>
-                        <h2 id="totalCalls" class="card-text">0</h2>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-subtitle mb-2 text-muted">Total de Chamadas</h6>
+                                <h2 class="card-title mb-0" id="totalCalls">0</h2>
+                            </div>
+                            <div class="stat-icon text-primary">
+                                <i class="fas fa-phone"></i>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card">
+                <div class="card stat-card h-100">
                     <div class="card-body">
-                        <h5 class="card-title">Chamadas Atendidas</h5>
-                        <h2 id="answeredCalls" class="card-text">0</h2>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-subtitle mb-2 text-muted">Chamadas Atendidas</h6>
+                                <h2 class="card-title mb-0" id="answeredCalls">0</h2>
+                            </div>
+                            <div class="stat-icon text-success">
+                                <i class="fas fa-phone-volume"></i>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card">
+                <div class="card stat-card h-100">
                     <div class="card-body">
-                        <h5 class="card-title">Chamadas Perdidas</h5>
-                        <h2 id="missedCalls" class="card-text">0</h2>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-subtitle mb-2 text-muted">Chamadas Perdidas</h6>
+                                <h2 class="card-title mb-0" id="missedCalls">0</h2>
+                            </div>
+                            <div class="stat-icon text-danger">
+                                <i class="fas fa-phone-slash"></i>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card">
+                <div class="card stat-card h-100">
                     <div class="card-body">
-                        <h5 class="card-title">Taxa de Atendimento</h5>
-                        <h2 id="answerRate" class="card-text">0%</h2>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-subtitle mb-2 text-muted">Taxa de Atendimento</h6>
+                                <h2 class="card-title mb-0" id="answerRate">0%</h2>
+                            </div>
+                            <div class="stat-icon text-info">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Gráficos -->
-        <div class="row mb-4">
-            <div class="col-md-6">
-                <div class="card">
+        <div class="row g-4">
+            <!-- Últimas Chamadas -->
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Últimas Chamadas</h5>
+                    </div>
                     <div class="card-body">
-                        <h5 class="card-title">Chamadas por Hora</h5>
-                        <div id="callsPerHourChart"></div>
+                        <div class="call-list" id="recentCallsList">
+                            <!-- Preenchido via JavaScript -->
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Distribuição por Dispositivo</h5>
-                        <div id="deviceDistributionChart"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <div class="row mb-4">
-            <div class="col-md-12">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Horários de Pico</h5>
-                        <div id="peakHoursHeatmap"></div>
+            <!-- Monitor em Tempo Real -->
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Monitor em Tempo Real</h5>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row mb-4">
-            <div class="col-md-12">
-                <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title">Análise Temporal</h5>
-                        <div id="temporalAnalysisChart"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Chamadas Recentes -->
-        <div class="row">
-            <div class="col-md-12">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Chamadas Recentes</h5>
-                        <div class="table-responsive">
-                            <table class="table">
+                        <div id="notification" class="notification"></div>
+                        <div id="connectionStatus" class="connection-status">Conectando...</div>
+                        <div class="monitor-table table-responsive">
+                            <table class="table table-hover">
                                 <thead>
                                     <tr>
                                         <th>Número</th>
                                         <th>Data/Hora</th>
-                                        <th>Duração</th>
                                         <th>Status</th>
                                         <th>Dispositivo</th>
-                                        <th>Ações</th>
                                     </tr>
                                 </thead>
-                                <tbody id="recentCallsList">
+                                <tbody id="monitorTable">
+                                    <!-- Preenchido via JavaScript -->
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Dispositivos Conectados -->
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Dispositivos Conectados</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="deviceChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
 
-    <!-- Alertas -->
-    <div id="alertsList" class="alerts-container"></div>
 
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/locale/pt-br.min.js"></script>
-    <script src="/dashboard/dashboard.js"></script>
+        <script>
+
+        </script>
+    </main>
+
+    <th:block layout:fragment="scripts">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+        <script th:src="@{/js/index.js}"></script>
+    </th:block>
 </body>
 
 </html>

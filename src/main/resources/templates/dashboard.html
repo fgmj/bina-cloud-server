@@ -1,176 +1,239 @@
 <!DOCTYPE html>
-<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layouts/default}">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bina Cloud Monitor - Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Dashboard - Bina Cloud</title>
+
+    <!-- ApexCharts CSS -->
     <link href="https://cdn.jsdelivr.net/npm/apexcharts@3.45.0/dist/apexcharts.css" rel="stylesheet">
-    <link rel="stylesheet" th:href="@{/dashboard/styles.css}">
+
+    <!-- Custom CSS -->
+    <th:block layout:fragment="css">
+        <style>
+            .metric-card {
+                text-align: center;
+                padding: 1rem;
+                border-radius: var(--border-radius);
+                background-color: var(--bg-light);
+                transition: transform var(--transition-fast);
+            }
+
+            .metric-card:hover {
+                transform: translateY(-5px);
+            }
+
+            .metric-card h6 {
+                color: var(--text-muted);
+                margin-bottom: 0.5rem;
+            }
+
+            .metric-card h2 {
+                color: var(--text-color);
+                margin: 0;
+                font-size: 2rem;
+                font-weight: 600;
+            }
+
+            .alerts-container {
+                max-height: 300px;
+                overflow-y: auto;
+            }
+
+            .alert-item {
+                padding: 0.75rem;
+                border-radius: var(--border-radius);
+                margin-bottom: 0.5rem;
+                background-color: var(--bg-light);
+                border-left: 4px solid var(--danger-color);
+            }
+
+            .alert-item.warning {
+                border-left-color: var(--warning-color);
+            }
+
+            .alert-item.info {
+                border-left-color: var(--info-color);
+            }
+
+            .peak-metric {
+                text-align: center;
+                padding: 1rem;
+                background-color: var(--bg-light);
+                border-radius: var(--border-radius);
+            }
+
+            .peak-metric h6 {
+                color: var(--text-muted);
+                margin-bottom: 0.5rem;
+            }
+
+            .peak-metric div {
+                font-size: 1.25rem;
+                font-weight: 600;
+                color: var(--text-color);
+            }
+        </style>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link href="https://cdn.jsdelivr.net/npm/apexcharts@3.45.0/dist/apexcharts.css" rel="stylesheet">
+        <link rel="stylesheet" th:href="@{/dashboard/styles.css}">
+    </th:block>
 </head>
 
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="#">Bina Cloud Monitor</a>
-            <div class="d-flex">
-                <div class="form-check form-switch me-3">
-                    <input class="form-check-input" type="checkbox" id="darkModeSwitch">
-                    <label class="form-check-label text-light" for="darkModeSwitch">Modo Escuro</label>
-                </div>
-                <div id="currentTime" class="text-light"></div>
-            </div>
-        </div>
-    </nav>
-
-    <div class="container-fluid py-4">
-        <!-- Filtro de Período -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="btn-group" role="group" aria-label="Filtro de Período">
-                    <button type="button" class="btn btn-outline-primary" data-period="today">Hoje</button>
-                    <button type="button" class="btn btn-outline-primary" data-period="7days">Últimos 7 dias</button>
-                    <button type="button" class="btn btn-outline-primary" data-period="28days">Últimos 28 dias</button>
+    <main layout:fragment="content">
+        <div class="container-fluid py-4">
+            <!-- Filtro de Período -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="btn-group" role="group" aria-label="Filtro de Período">
+                        <button type="button" class="btn btn-outline-primary" data-period="today">Hoje</button>
+                        <button type="button" class="btn btn-outline-primary" data-period="7days">Últimos 7
+                            dias</button>
+                        <button type="button" class="btn btn-outline-primary" data-period="28days">Últimos 28
+                            dias</button>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Abas -->
-        <ul class="nav nav-tabs mb-4" id="dashboardTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview"
-                    type="button" role="tab">
-                    Visão Geral
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="analysis-tab" data-bs-toggle="tab" data-bs-target="#analysis" type="button"
-                    role="tab">
-                    Análise Detalhada
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="calls-tab" data-bs-toggle="tab" data-bs-target="#calls" type="button"
-                    role="tab">
-                    Últimas Chamadas
-                </button>
-            </li>
-        </ul>
+            <!-- Abas -->
+            <ul class="nav nav-tabs mb-4" id="dashboardTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview"
+                        type="button" role="tab">
+                        Visão Geral
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="analysis-tab" data-bs-toggle="tab" data-bs-target="#analysis"
+                        type="button" role="tab">
+                        Análise Detalhada
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="calls-tab" data-bs-toggle="tab" data-bs-target="#calls" type="button"
+                        role="tab">
+                        Últimas Chamadas
+                    </button>
+                </li>
+            </ul>
 
-        <!-- Conteúdo das Abas -->
-        <div class="tab-content" id="dashboardTabsContent">
-            <!-- Aba 1: Visão Geral -->
-            <div class="tab-pane fade show active" id="overview" role="tabpanel">
-                <!-- Métricas Gerais -->
-                <div class="row mb-4">
-                    <div class="col-12">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5 class="card-title mb-0">Métricas Gerais</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-3">
-                                        <div class="metric-card">
-                                            <h6>Total de Chamadas</h6>
-                                            <h2 id="totalCalls">0</h2>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="metric-card">
-                                            <h6>Chamadas Atendidas</h6>
-                                            <h2 id="answeredCalls">0</h2>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="metric-card">
-                                            <h6>Chamadas Perdidas</h6>
-                                            <h2 id="missedCalls">0</h2>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="metric-card">
-                                            <h6>Taxa de Atendimento</h6>
-                                            <h2 id="answerRate">0%</h2>
-                                        </div>
-                                    </div>
+            <!-- Conteúdo das Abas -->
+            <div class="tab-content" id="dashboardTabsContent">
+                <!-- Aba 1: Visão Geral -->
+                <div class="tab-pane fade show active" id="overview" role="tabpanel">
+                    <!-- Métricas Gerais -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Métricas Gerais</h5>
                                 </div>
-                                <div class="row mt-4">
-                                    <div class="col-12">
-                                        <div id="callsPerHourChart"></div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <div class="metric-card">
+                                                <h6>Total de Chamadas</h6>
+                                                <h2 id="totalCalls">0</h2>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="metric-card">
+                                                <h6>Chamadas Atendidas</h6>
+                                                <h2 id="answeredCalls">0</h2>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="metric-card">
+                                                <h6>Chamadas Perdidas</h6>
+                                                <h2 id="missedCalls">0</h2>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="metric-card">
+                                                <h6>Taxa de Atendimento</h6>
+                                                <h2 id="answerRate">0%</h2>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-4">
+                                        <div class="col-12">
+                                            <div id="callsPerHourChart"></div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Estatísticas por Dispositivo -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Estatísticas por Dispositivo</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="deviceStats"></div>
+                                    <div id="deviceDistributionChart"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Alertas</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="alertsList" class="alerts-container"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Estatísticas por Dispositivo -->
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5 class="card-title mb-0">Estatísticas por Dispositivo</h5>
-                            </div>
-                            <div class="card-body">
-                                <div id="deviceStats"></div>
-                                <div id="deviceDistributionChart"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5 class="card-title mb-0">Alertas</h5>
-                            </div>
-                            <div class="card-body">
-                                <div id="alertsList" class="alerts-container"></div>
+                <!-- Aba 2: Análise Detalhada -->
+                <div class="tab-pane fade" id="analysis" role="tabpanel">
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Análise Temporal</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="temporalAnalysisChart"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Aba 2: Análise Detalhada -->
-            <div class="tab-pane fade" id="analysis" role="tabpanel">
-                <div class="row mb-4">
-                    <div class="col-md-12">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5 class="card-title mb-0">Análise Temporal</h5>
-                            </div>
-                            <div class="card-body">
-                                <div id="temporalAnalysisChart"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row mb-4">
-                    <div class="col-md-12">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5 class="card-title mb-0">Análise de Horários de Pico</h5>
-                            </div>
-                            <div class="card-body">
-                                <div id="peakHoursHeatmap"></div>
-                                <div class="row mt-3">
-                                    <div class="col-md-4">
-                                        <div class="peak-metric">
-                                            <h6>Pico Atual</h6>
-                                            <div id="currentPeak">-</div>
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Análise de Horários de Pico</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="peakHoursHeatmap"></div>
+                                    <div class="row mt-3">
+                                        <div class="col-md-4">
+                                            <div class="peak-metric">
+                                                <h6>Pico Atual</h6>
+                                                <div id="currentPeak">-</div>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="peak-metric">
-                                            <h6>Próximo Pico Previsto</h6>
-                                            <div id="nextPeak">-</div>
+                                        <div class="col-md-4">
+                                            <div class="peak-metric">
+                                                <h6>Próximo Pico Previsto</h6>
+                                                <div id="nextPeak">-</div>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="peak-metric">
-                                            <h6>Comparativo com Média</h6>
-                                            <div id="peakComparison">-</div>
+                                        <div class="col-md-4">
+                                            <div class="peak-metric">
+                                                <h6>Comparativo com Média</h6>
+                                                <div id="peakComparison">-</div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -178,32 +241,32 @@
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Aba 3: Últimas Chamadas -->
-            <div class="tab-pane fade" id="calls" role="tabpanel">
-                <div class="row">
-                    <div class="col-12">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5 class="card-title mb-0">Últimas Chamadas</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table table-hover">
-                                        <thead>
-                                            <tr>
-                                                <th>Número</th>
-                                                <th>Data/Hora</th>
-                                                <th>Duração</th>
-                                                <th>Status</th>
-                                                <th>Dispositivo</th>
-                                                <th>Ações</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="recentCallsList">
-                                        </tbody>
-                                    </table>
+                <!-- Aba 3: Últimas Chamadas -->
+                <div class="tab-pane fade" id="calls" role="tabpanel">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Últimas Chamadas</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Número</th>
+                                                    <th>Data/Hora</th>
+                                                    <th>Duração</th>
+                                                    <th>Status</th>
+                                                    <th>Dispositivo</th>
+                                                    <th>Ações</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="recentCallsList">
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -211,13 +274,16 @@
                 </div>
             </div>
         </div>
-    </div>
+    </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.0/dist/apexcharts.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/locale/pt-br.js"></script>
-    <script th:src="@{/dashboard/dashboard.js}"></script>
+    <!-- Scripts -->
+    <th:block layout:fragment="js">
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.0/dist/apexcharts.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/locale/pt-br.js"></script>
+        <script th:src="@{/dashboard/dashboard.js}"></script>
+    </th:block>
 </body>
 
 </html>

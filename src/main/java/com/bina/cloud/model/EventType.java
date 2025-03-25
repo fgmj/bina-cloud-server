@@ -5,5 +5,7 @@ public enum EventType {
     MISSED,
     BUSY,
     NO_ANSWER,
-    REJECTED
+    REJECTED,
+    PING,
+    TEST
 }

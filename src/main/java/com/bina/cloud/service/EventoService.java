@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -18,24 +19,25 @@ import java.util.Optional;
 public class EventoService {
 
     private final EventoRepository eventoRepository;
-    private final NotificationService notificationService;
+    private final WebSocketService webSocketService;
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+    @Autowired
+    private DispositivoService dispositivoService;
 
     @Transactional
     public Evento criarEvento(Evento evento) {
         log.info("Criando novo evento: {}", evento);
-        evento.setTimestamp(LocalDateTime.now());
+        if (evento.getTimestamp() == null) {
+            evento.setTimestamp(LocalDateTime.now());
+        }
         Evento eventoSalvo = eventoRepository.save(evento);
         log.info("Evento salvo com sucesso: {}", eventoSalvo);
 
+        // Atualizar última conexão do dispositivo
+        dispositivoService.atualizarUltimaConexao(evento.getDeviceId());
+
         // Notificar via WebSocket
-        notificationService.notifyNewEvent(
-                eventoSalvo.getId().toString(),
-                eventoSalvo.getDescription(),
-                eventoSalvo.getEventType().toString(),
-                eventoSalvo.getDeviceId(),
-                eventoSalvo.getTimestamp().format(formatter),
-                eventoSalvo.getAdditionalData());
+        webSocketService.notifyNewEvent(eventoSalvo);
 
         return eventoSalvo;
     }

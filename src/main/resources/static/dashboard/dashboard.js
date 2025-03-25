@@ -3,50 +3,14 @@ document.addEventListener('DOMContentLoaded', function () {
     // Configurar momento.js para português
     moment.locale('pt-br');
 
-    // Inicializar componentes
-    setupDarkMode();
-    setupCurrentTime();
+    // Inicializar componentes    
     initializeCharts();
     setupWebSocket();
     setupPeriodFilter();
     loadInitialData();
 });
 
-// Configuração do modo escuro
-function setupDarkMode() {
-    const darkModeSwitch = document.getElementById('darkModeSwitch');
-    const isDarkMode = localStorage.getItem('darkMode') === 'true';
 
-    darkModeSwitch.checked = isDarkMode;
-    document.body.classList.toggle('dark-mode', isDarkMode);
-
-    // Atualizar classe active no menu
-    const currentPath = window.location.pathname;
-    document.querySelectorAll('.navbar-item').forEach(item => {
-        if (item.getAttribute('href') === currentPath) {
-            item.classList.add('active');
-        } else {
-            item.classList.remove('active');
-        }
-    });
-
-    darkModeSwitch.addEventListener('change', function () {
-        document.body.classList.toggle('dark-mode');
-        localStorage.setItem('darkMode', this.checked);
-        updateChartsTheme(this.checked);
-    });
-}
-
-// Atualização do horário atual
-function setupCurrentTime() {
-    function updateTime() {
-        const currentTime = document.getElementById('currentTime');
-        currentTime.textContent = moment().format('DD/MM/YYYY HH:mm:ss');
-    }
-
-    updateTime();
-    setInterval(updateTime, 1000);
-}
 
 // Configuração do WebSocket
 function setupWebSocket() {

@@ -1,108 +1,93 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layouts/default}">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bina Cloud Server - Eventos</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f5f5f5;
-        }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .event-list {
-            margin-top: 20px;
-        }
-        .event-item {
-            padding: 15px;
-            border-bottom: 1px solid #eee;
-            background-color: #fff;
-            margin-bottom: 10px;
-            border-radius: 4px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        .event-item:last-child {
-            border-bottom: none;
-        }
-        .event-title {
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 5px;
-        }
-        .event-info {
-            color: #666;
-            font-size: 0.9em;
-        }
-        .event-time {
-            color: #888;
-            font-size: 0.85em;
-        }
-        .event-type {
-            background-color: #e9ecef;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 0.85em;
-            color: #495057;
-        }
-        .refresh-button {
-            margin-bottom: 20px;
-        }
-    </style>
+    <title>Eventos - Bina Cloud</title>
+    <th:block layout:fragment="css">
+        <style>
+            .event-list {
+                margin-top: 20px;
+            }
+
+            .event-item {
+                padding: 15px;
+                border-bottom: 1px solid #eee;
+                background-color: #fff;
+                margin-bottom: 10px;
+                border-radius: 4px;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            }
+
+            .event-item:last-child {
+                border-bottom: none;
+            }
+
+            .event-title {
+                font-weight: bold;
+                color: #333;
+                margin-bottom: 5px;
+            }
+
+            .event-info {
+                color: #666;
+                font-size: 0.9em;
+            }
+
+            .event-time {
+                color: #888;
+                font-size: 0.85em;
+            }
+
+            .event-type {
+                background-color: #e9ecef;
+                padding: 2px 8px;
+                border-radius: 12px;
+                font-size: 0.85em;
+                color: #495057;
+            }
+        </style>
+    </th:block>
 </head>
-<body class="bg-light">
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
-        <div class="container">
-            <a class="navbar-brand" href="/eventos">Bina Cloud Server</a>
-            <span class="navbar-text">
-                Últimos 10 Eventos
-            </span>
-        </div>
-    </nav>
 
-    <div class="container">
+<body>
+    <main layout:fragment="content">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1>Eventos Recentes</h1>
-            <a href="/eventos" class="btn btn-primary refresh-button">
-                Atualizar
-            </a>
+            <h1 class="h3 mb-0">Eventos</h1>
+            <button class="btn btn-primary" onclick="location.reload()">
+                <i class="fas fa-sync-alt"></i> Atualizar
+            </button>
         </div>
 
-        <div class="event-list">
-            <div th:each="evento : ${eventos}" class="event-item">
-                <div class="event-title" th:text="${evento.description}">Título do Evento</div>
-                <div class="event-info">
-                    <span class="event-type" th:text="${evento.eventType}">Tipo</span>
-                    <span class="ms-2">ID do Dispositivo: </span>
-                    <span th:text="${evento.deviceId}">ID</span>
-                </div>
-                <div class="event-time">
-                    <span>Data: </span>
-                    <span th:text="${#temporals.format(evento.timestamp, 'dd/MM/yyyy HH:mm:ss')}">01/01/2024 00:00:00</span>
-                </div>
-                <div class="event-info" th:if="${evento.additionalData != null}">
-                    <span>Dados Adicionais: </span>
-                    <span th:text="${evento.additionalData}">Dados</span>
-                </div>
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Últimos 10 Eventos</h5>
             </div>
-            <div th:if="${#lists.isEmpty(eventos)}" class="alert alert-info">
-                Nenhum evento encontrado.
+            <div class="card-body p-0">
+                <div class="event-list">
+                    <div th:if="${#lists.isEmpty(eventos)}" class="text-center py-5">
+                        <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">Nenhum evento encontrado</p>
+                    </div>
+                    <div th:each="evento : ${eventos}" class="event-item">
+                        <div class="event-title" th:text="${evento.description}">Título do Evento</div>
+                        <div class="event-meta">
+                            <span class="badge"
+                                th:classappend="${evento.eventType == 'MISSED' ? 'bg-danger' : 'bg-success'}"
+                                th:text="${evento.eventType}">Tipo</span>
+                            <span class="ms-2" th:text="${evento.deviceId}">ID do Dispositivo</span>
+                            <span class="ms-2" th:text="${evento.phoneNumber}">Número do Telefone</span>
+                            <span class="ms-2"
+                                th:text="${#temporals.format(evento.timestamp, 'dd/MM/yyyy HH:mm:ss')}">Data/Hora</span>
+                        </div>
+                        <div th:if="${evento.additionalData != null}" class="event-data"
+                            th:text="${evento.additionalData}">Dados
+                            adicionais</div>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-
-    <footer class="mt-5 mb-4 text-center text-muted">
-        <small>Bina Cloud Server - Monitor de Eventos</small>
-    </footer>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    </main>
 </body>
-</html> 
+
+</html>

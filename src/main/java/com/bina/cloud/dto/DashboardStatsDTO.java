@@ -1,16 +1,22 @@
 package com.bina.cloud.dto;
 
-import lombok.Data;
+import com.bina.cloud.model.Evento;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class DashboardStatsDTO {
     private long totalCalls;
     private long answeredCalls;
     private long missedCalls;
+    private long busyCalls;
     private double answerRate;
 
     private List<Integer> callsPerHour;
@@ -19,4 +25,5 @@ public class DashboardStatsDTO {
     private List<TemporalDataDTO> temporalData;
     private PeakMetricsDTO peakMetrics;
     private List<CallDTO> recentCalls;
+    private List<ActiveDeviceDTO> activeDevices;
 }
