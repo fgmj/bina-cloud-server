@@ -31,15 +31,6 @@ document.addEventListener('DOMContentLoaded', function () {
     console.log('[Dashboard] Initializing dashboard...');
 
     try {
-        // Inicializar o gráfico de dispositivos
-        const ctx = document.getElementById('deviceChart')?.getContext('2d');
-        if (ctx) {
-            deviceChart = new Chart(ctx, deviceChartConfig);
-            console.log('[Dashboard] Device chart initialized');
-        } else {
-            console.warn('[Dashboard] Could not find deviceChart canvas element');
-        }
-
         // Conectar ao WebSocket
         connect();
 
@@ -64,6 +55,8 @@ stompClient.debug = function (str) {
 
 function connect() {
     console.log('[WebSocket] Attempting to connect...');
+    updateConnectionStatus(true);
+
     stompClient.connect({},
         function (frame) {
             console.log('[WebSocket] Connected:', frame);
@@ -92,14 +85,26 @@ function connect() {
 
 // Função para atualizar status da conexão
 function updateConnectionStatus(connected) {
-    console.log('[WebSocket] Updating connection status:', connected ? 'Connected' : 'Disconnected');
-    const statusElement = document.getElementById('connectionStatus');
-    if (statusElement) {
-        statusElement.textContent = connected ? 'Conectado' : 'Desconectado - Tentando reconectar...';
-        statusElement.className = 'connection-status ' + (connected ? 'connected' : 'disconnected');
+    const indicator = document.getElementById('connectionIndicator');
+    const text = document.getElementById('connectionText');
+    const lastUpdate = document.getElementById('lastUpdate');
+
+    if (connected) {
+        indicator.className = 'connection-indicator connection-connected';
+        text.textContent = 'Conectado';
+        lastUpdate.textContent = new Date().toLocaleTimeString();
     } else {
-        console.warn('[WebSocket] Could not find connectionStatus element');
+        indicator.className = 'connection-indicator connection-disconnected';
+        text.textContent = 'Desconectado';
     }
+}
+
+function updateConnectionStatusConnecting() {
+    const indicator = document.getElementById('connectionIndicator');
+    const text = document.getElementById('connectionText');
+
+    indicator.className = 'connection-indicator connection-connecting';
+    text.textContent = 'Conectando...';
 }
 
 // Função para carregar dados do dashboard
@@ -113,24 +118,13 @@ function loadDashboardData() {
         .then(data => {
             console.log('[Dashboard] Data received:', data);
             updateDashboardStats(data);
-            if (data.deviceStats) {
-                updateDeviceChart(data.deviceStats);
-            } else {
-                console.warn('[Dashboard] No device stats in response');
-            }
-            if (data.recentCalls) {
-                updateRecentCalls(data.recentCalls);
-                updateMonitorTable(data.recentCalls);
-            } else {
-                console.warn('[Dashboard] No recent calls in response');
-            }
+            updateDevicesList(data.activeDevices);
         })
         .catch(error => console.error('[Dashboard] Error loading data:', error));
 }
 
 // Função para atualizar estatísticas do dashboard
 function updateDashboardStats(data) {
-    console.log('[Dashboard] Updating stats:', data);
     const elements = {
         totalCalls: document.getElementById('totalCalls'),
         answeredCalls: document.getElementById('answeredCalls'),
@@ -146,13 +140,46 @@ function updateDashboardStats(data) {
     if (elements.answerRate) elements.answerRate.textContent = `${(data.answerRate || 0).toFixed(1)}%`;
 }
 
-// Função para atualizar o gráfico de dispositivos
-function updateDeviceChart(deviceStats) {
-    if (deviceChart && deviceStats) {
-        const activeDevices = deviceStats.values.reduce((a, b) => a + b, 0);
-        deviceChart.data.datasets[0].data = [activeDevices, Math.max(0, 10 - activeDevices)];
-        deviceChart.update();
+// Função para atualizar lista de dispositivos
+function updateDevicesList(devices) {
+    console.log('[Dashboard] Updating devices list:', devices);
+    const devicesList = document.getElementById('devicesList');
+    if (!devicesList) {
+        console.warn('[Dashboard] Could not find devicesList element');
+        return;
     }
+
+    devicesList.innerHTML = devices.map(device => `
+        <div class="device-item ${device.active ? 'active' : 'inactive'}">
+            <div class="device-header">
+                <div class="device-name">${device.deviceId}</div>
+                <div class="device-status ${device.active ? 'active' : 'inactive'}">
+                    ${device.active ? 'Ativo' : 'Inativo'}
+                </div>
+            </div>
+            <div class="device-stats">
+                <div class="stat-item">
+                    <span class="stat-label">Total</span>
+                    <span class="stat-value">${device.totalCalls}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Atendidas</span>
+                    <span class="stat-value">${device.answeredCalls}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Perdidas</span>
+                    <span class="stat-value">${device.missedCalls}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Taxa</span>
+                    <span class="stat-value">${device.answerRate.toFixed(1)}%</span>
+                </div>
+            </div>
+            <div class="last-activity">
+                Última atividade: ${device.lastActivity}
+            </div>
+        </div>
+    `).join('');
 }
 
 // Função para atualizar lista de chamadas recentes
@@ -190,26 +217,31 @@ function updateMonitorTable(calls) {
 }
 
 // Função para lidar com novos eventos
-function handleNewEvent(message) {
-    console.log('[WebSocket] Processing message:', message);
+function handleNewEvent(event) {
+    console.log('[WebSocket] Processing message:', event);
     eventCount++;
 
     try {
         // O evento pode vir diretamente ou dentro de message.event
-        const event = message.event || message;
-        console.log('[WebSocket] Parsed event:', event);
+        const eventParsed = event.event || event;
+        console.log('[WebSocket] Parsed event:', eventParsed);
 
         // Atualizar dados do dashboard
         loadDashboardData();
 
         // Atualizar a tabela de monitoramento imediatamente
-        if (event.phoneNumber) {
+        if (eventParsed.phoneNumber) {
+            // Abrir URL em nova aba se disponível
+            if (eventParsed.url && eventParsed.url.trim() !== '') {
+                console.log('Opening URL:', eventParsed.url);
+                window.open(eventParsed.url, '_blank');
+            }
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>${event.phoneNumber || 'N/A'}</td>
-                <td>${moment(event.timestamp).format('DD/MM/YYYY HH:mm:ss')}</td>
-                <td><span class="badge ${getStatusBadgeClass(event.eventType)}">${getStatusText(event.eventType)}</span></td>
-                <td>${event.deviceId || 'N/A'}</td>
+                <td>${eventParsed.phoneNumber || 'N/A'}</td>
+                <td>${moment(eventParsed.timestamp).format('DD/MM/YYYY HH:mm:ss')}</td>
+                <td><span class="badge ${getStatusBadgeClass(eventParsed.eventType)}">${getStatusText(eventParsed.eventType)}</span></td>
+                <td>${eventParsed.deviceId || 'N/A'}</td>
             `;
 
             const monitorTable = document.getElementById('monitorTable');
@@ -223,24 +255,24 @@ function handleNewEvent(message) {
         }
 
         // Mostrar notificação
-        const title = event.phoneNumber
-            ? `Nova chamada de ${event.phoneNumber}`
+        const title = eventParsed.phoneNumber
+            ? `Nova chamada de ${eventParsed.phoneNumber}`
             : 'Nova chamada recebida';
         showNotification(title);
 
         // Atualizar lista de chamadas recentes
         const recentCallsList = document.getElementById('recentCallsList');
-        if (recentCallsList && event.phoneNumber) {
+        if (recentCallsList && eventParsed.phoneNumber) {
             const callItem = document.createElement('div');
             callItem.className = 'call-item';
             callItem.innerHTML = `
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <strong>${event.phoneNumber}</strong>
+                        <strong>${eventParsed.phoneNumber}</strong>
                         <br>
-                        <small class="text-muted">${moment(event.timestamp).format('DD/MM/YYYY HH:mm:ss')}</small>
+                        <small class="text-muted">${moment(eventParsed.timestamp).format('DD/MM/YYYY HH:mm:ss')}</small>
                     </div>
-                    <span class="badge ${getStatusBadgeClass(event.eventType)}">${getStatusText(event.eventType)}</span>
+                    <span class="badge ${getStatusBadgeClass(eventParsed.eventType)}">${getStatusText(eventParsed.eventType)}</span>
                 </div>
             `;
             recentCallsList.insertBefore(callItem, recentCallsList.firstChild);

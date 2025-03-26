@@ -58,23 +58,65 @@ public class DashboardService {
                 log.info("Métricas calculadas: total={}, atendidas={}, perdidas={}, ocupado={}, taxa={}%",
                                 totalCalls, answeredCalls, missedCalls, busyCalls, Math.round(answerRate * 10) / 10.0);
 
-                // Obter dispositivos ativos (que enviaram eventos nos últimos 5 minutos)
-                LocalDateTime fiveMinutesAgo = now.minusMinutes(5);
-                List<ActiveDeviceDTO> activeDevices = eventos.stream()
-                                .filter(e -> !e.getTimestamp().isBefore(fiveMinutesAgo))
-                                .map(e -> {
-                                        ActiveDeviceDTO dto = ActiveDeviceDTO.builder()
-                                                        .id(e.getDeviceId())
-                                                        .name(e.getDeviceId()) // Por enquanto usando o ID como nome
-                                                        .type("Telefone") // Tipo padrão
-                                                        .location("Localização não especificada") // Localização padrão
-                                                        .lastConnection(e.getTimestamp()
+                // Obter dispositivos ativos (que enviaram eventos nos últimos 24 horas)
+                LocalDateTime twentyFourHoursAgo = now.minusHours(24);
+                Map<String, List<Evento>> eventosPorDispositivo = eventos.stream()
+                                .filter(e -> !e.getTimestamp().isBefore(twentyFourHoursAgo))
+                                .collect(Collectors.groupingBy(Evento::getDeviceId));
+
+                List<DeviceStatsDTO> activeDevices = eventosPorDispositivo.entrySet().stream()
+                                .map(entry -> {
+                                        String deviceId = entry.getKey();
+                                        List<Evento> deviceEvents = entry.getValue();
+
+                                        // Tentar obter o nome do dispositivo do additionalData do evento mais recente
+                                        String deviceName = deviceEvents.stream()
+                                                        .max(Comparator.comparing(Evento::getTimestamp))
+                                                        .map(e -> {
+                                                                Map<String, String> additionalData = parseAdditionalData(
+                                                                                e.getAdditionalData());
+                                                                return additionalData.getOrDefault("deviceName",
+                                                                                deviceId);
+                                                        })
+                                                        .orElse(deviceId);
+
+                                        long deviceTotalCalls = deviceEvents.size();
+                                        long deviceAnsweredCalls = deviceEvents.stream()
+                                                        .filter(e -> e.getEventType() == EventType.ANSWERED)
+                                                        .count();
+                                        long deviceMissedCalls = deviceEvents.stream()
+                                                        .filter(e -> e.getEventType() == EventType.MISSED)
+                                                        .count();
+                                        long deviceBusyCalls = deviceEvents.stream()
+                                                        .filter(e -> e.getEventType() == EventType.BUSY)
+                                                        .count();
+                                        double deviceAnswerRate = deviceTotalCalls > 0
+                                                        ? (deviceAnsweredCalls * 100.0 / deviceTotalCalls)
+                                                        : 0;
+
+                                        LocalDateTime lastEventTime = deviceEvents.stream()
+                                                        .map(Evento::getTimestamp)
+                                                        .max(LocalDateTime::compareTo)
+                                                        .orElse(null);
+
+                                        boolean isActive = lastEventTime != null &&
+                                                        lastEventTime.isAfter(now.minusMinutes(5));
+
+                                        return DeviceStatsDTO.builder()
+                                                        .deviceId(deviceName)
+                                                        .totalCalls(deviceTotalCalls)
+                                                        .answeredCalls(deviceAnsweredCalls)
+                                                        .missedCalls(deviceMissedCalls)
+                                                        .busyCalls(deviceBusyCalls)
+                                                        .answerRate(Math.round(deviceAnswerRate * 10) / 10.0)
+                                                        .lastActivity(lastEventTime != null ? lastEventTime
                                                                         .format(DateTimeFormatter.ofPattern(
-                                                                                        "dd/MM/yyyy HH:mm:ss")))
+                                                                                        "dd/MM/yyyy HH:mm:ss"))
+                                                                        : "N/A")
+                                                        .isActive(isActive)
                                                         .build();
-                                        return dto;
                                 })
-                                .distinct()
+                                .sorted(Comparator.comparing(DeviceStatsDTO::getLastActivity).reversed())
                                 .collect(Collectors.toList());
 
                 log.info("Dispositivos ativos encontrados: {}", activeDevices.size());
@@ -86,7 +128,7 @@ public class DashboardService {
                                 .busyCalls(busyCalls)
                                 .answerRate(Math.round(answerRate * 10) / 10.0)
                                 .callsPerHour(calculateCallsPerHour(eventosFiltrados))
-                                .deviceStats(calculateDeviceStats(eventosFiltrados))
+                                .deviceStats(calculateDeviceStats(eventos))
                                 .peakHours(calculatePeakHours(eventos))
                                 .temporalData(calculateTemporalData(eventosFiltrados))
                                 .peakMetrics(calculatePeakMetrics(eventosFiltrados))
@@ -106,18 +148,40 @@ public class DashboardService {
 
         private DeviceStatsDTO calculateDeviceStats(List<Evento> eventos) {
                 Map<String, Long> deviceCounts = eventos.stream()
-                                .collect(Collectors.groupingBy(
-                                                Evento::getDeviceId,
-                                                Collectors.counting()));
+                                .collect(Collectors.groupingBy(Evento::getDeviceId, Collectors.counting()));
 
-                List<String> labels = new ArrayList<>(deviceCounts.keySet());
-                List<Integer> values = deviceCounts.values().stream()
-                                .map(Long::intValue)
-                                .collect(Collectors.toList());
+                // Calculate device statistics
+                long totalCalls = deviceCounts.values().stream().mapToLong(Long::longValue).sum();
+                long answeredCalls = eventos.stream()
+                                .filter(e -> e.getEventType() == EventType.ANSWERED)
+                                .count();
+                long missedCalls = eventos.stream()
+                                .filter(e -> e.getEventType() == EventType.MISSED)
+                                .count();
+                long busyCalls = eventos.stream()
+                                .filter(e -> e.getEventType() == EventType.BUSY)
+                                .count();
+                double answerRate = totalCalls > 0 ? (answeredCalls * 100.0 / totalCalls) : 0;
+
+                // Get the most recent event for last activity
+                Optional<Evento> lastEvent = eventos.stream()
+                                .max(Comparator.comparing(Evento::getTimestamp));
 
                 return DeviceStatsDTO.builder()
-                                .labels(labels)
-                                .values(values)
+                                .deviceId("TOTAL")
+                                .totalCalls(totalCalls)
+                                .answeredCalls(answeredCalls)
+                                .missedCalls(missedCalls)
+                                .busyCalls(busyCalls)
+                                .answerRate(answerRate)
+                                .lastActivity(lastEvent
+                                                .map(e -> e.getTimestamp().format(
+                                                                DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")))
+                                                .orElse("N/A"))
+                                .isActive(lastEvent
+                                                .map(e -> !e.getTimestamp()
+                                                                .isBefore(LocalDateTime.now().minusMinutes(5)))
+                                                .orElse(false))
                                 .build();
         }
 
@@ -318,7 +382,7 @@ public class DashboardService {
 
         public DashboardStatsDTO getDashboardStats() {
                 LocalDateTime now = LocalDateTime.now();
-                LocalDateTime startOfDay = now.withHour(0).withMinute(0).withSecond(0).withNano(0);
+                LocalDateTime startOfDay = now.minusHours(24);
 
                 List<Evento> eventosFiltrados = eventoService.listarEventos().stream()
                                 .filter(e -> !e.getTimestamp().isBefore(startOfDay) && !e.getTimestamp().isAfter(now))
@@ -343,40 +407,55 @@ public class DashboardService {
 
                 double answerRate = totalCalls > 0 ? (answeredCalls * 100.0 / totalCalls) : 0;
 
-                // Converter eventos para CallDTO
-                List<CallDTO> recentCalls = eventosFiltrados.stream()
-                                .filter(e -> e.getEventType() == EventType.ANSWERED
-                                                || e.getEventType() == EventType.MISSED)
-                                .sorted(Comparator.comparing(Evento::getTimestamp).reversed())
-                                .limit(10)
-                                .map(e -> CallDTO.builder()
-                                                .phoneNumber(e.getPhoneNumber())
-                                                .timestamp(e.getTimestamp().toInstant(ZoneOffset.UTC).toEpochMilli())
-                                                .duration(parseAdditionalData(e.getAdditionalData())
-                                                                .getOrDefault("duration", "-"))
-                                                .status(e.getEventType())
-                                                .device(e.getDeviceId())
-                                                .build())
-                                .collect(Collectors.toList());
+                // Obter lista de dispositivos ativos nas últimas 24 horas com suas estatísticas
+                Map<String, DeviceStatsDTO> deviceStats = eventosFiltrados.stream()
+                                .collect(Collectors.groupingBy(
+                                                Evento::getDeviceId,
+                                                Collectors.collectingAndThen(
+                                                                Collectors.toList(),
+                                                                eventos -> {
+                                                                        long deviceAnswered = eventos.stream()
+                                                                                        .filter(e -> e.getEventType() == EventType.ANSWERED)
+                                                                                        .count();
+                                                                        long deviceMissed = eventos.stream()
+                                                                                        .filter(e -> e.getEventType() == EventType.MISSED)
+                                                                                        .count();
+                                                                        long deviceBusy = eventos.stream()
+                                                                                        .filter(e -> e.getEventType() == EventType.BUSY)
+                                                                                        .count();
+                                                                        LocalDateTime lastActivity = eventos.stream()
+                                                                                        .map(Evento::getTimestamp)
+                                                                                        .max(LocalDateTime::compareTo)
+                                                                                        .orElse(null);
 
-                // Obter dispositivos ativos nos últimos 3 minutos
-                LocalDateTime threeMinutesAgo = now.minusMinutes(3);
-                List<ActiveDeviceDTO> activeDevices = eventoService.listarEventos().stream()
-                                .filter(e -> !e.getTimestamp().isBefore(threeMinutesAgo))
-                                .map(e -> ActiveDeviceDTO.builder()
-                                                .id(e.getDeviceId())
-                                                .name(e.getDeviceId())
-                                                .type("Telefone")
-                                                .location("Localização não especificada")
-                                                .lastConnection(e.getTimestamp()
-                                                                .format(DateTimeFormatter
-                                                                                .ofPattern("dd/MM/yyyy HH:mm:ss")))
-                                                .build())
-                                .distinct()
-                                .collect(Collectors.toList());
+                                                                        return DeviceStatsDTO.builder()
+                                                                                        .deviceId(eventos.get(0)
+                                                                                                        .getDeviceId())
+                                                                                        .totalCalls(eventos.size())
+                                                                                        .answeredCalls(deviceAnswered)
+                                                                                        .missedCalls(deviceMissed)
+                                                                                        .busyCalls(deviceBusy)
+                                                                                        .answerRate(deviceAnswered
+                                                                                                        * 100.0
+                                                                                                        / eventos.size())
+                                                                                        .lastActivity(lastActivity != null
+                                                                                                        ? lastActivity.format(
+                                                                                                                        DateTimeFormatter
+                                                                                                                                        .ofPattern("dd/MM/yyyy HH:mm:ss"))
+                                                                                                        : "N/A")
+                                                                                        .isActive(lastActivity != null
+                                                                                                        &&
+                                                                                                        lastActivity.isAfter(
+                                                                                                                        now.minusMinutes(
+                                                                                                                                        5)))
+                                                                                        .build();
+                                                                })));
 
-                log.info("Estatísticas do dia: total={}, atendidas={}, perdidas={}, ocupadas={}, taxa={}%",
-                                totalCalls, answeredCalls, missedCalls, busyCalls, answerRate);
+                List<DeviceStatsDTO> activeDevices = new ArrayList<>(deviceStats.values());
+                activeDevices.sort((a, b) -> b.getLastActivity().compareTo(a.getLastActivity()));
+
+                log.info("Estatísticas do dia: total={}, atendidas={}, perdidas={}, ocupadas={}, taxa={}%, dispositivos={}",
+                                totalCalls, answeredCalls, missedCalls, busyCalls, answerRate, activeDevices.size());
 
                 return DashboardStatsDTO.builder()
                                 .totalCalls(totalCalls)
@@ -384,7 +463,7 @@ public class DashboardService {
                                 .missedCalls(missedCalls)
                                 .busyCalls(busyCalls)
                                 .answerRate(answerRate)
-                                .recentCalls(recentCalls)
+                                .recentCalls(getRecentCalls(eventosFiltrados))
                                 .activeDevices(activeDevices)
                                 .build();
         }

@@ -25,5 +25,5 @@ public class DashboardStatsDTO {
     private List<TemporalDataDTO> temporalData;
     private PeakMetricsDTO peakMetrics;
     private List<CallDTO> recentCalls;
-    private List<ActiveDeviceDTO> activeDevices;
+    private List<DeviceStatsDTO> activeDevices;
 }

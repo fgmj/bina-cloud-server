@@ -2,11 +2,16 @@ package com.bina.cloud.dto;
 
 import lombok.Data;
 import lombok.Builder;
-import java.util.List;
 
 @Data
 @Builder
 public class DeviceStatsDTO {
-    private List<Integer> values;
-    private List<String> labels;
-} 
+    private String deviceId;
+    private long totalCalls;
+    private long answeredCalls;
+    private long missedCalls;
+    private long busyCalls;
+    private double answerRate;
+    private String lastActivity;
+    private boolean isActive;
+}

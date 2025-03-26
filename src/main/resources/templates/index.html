@@ -78,6 +78,214 @@
                     opacity: 1;
                 }
             }
+
+            .devices-diagram {
+                padding: 1rem;
+            }
+
+            .device-item {
+                padding: 1rem;
+                margin-bottom: 1rem;
+                border-radius: 8px;
+                border: 1px solid #ddd;
+                transition: all 0.3s ease;
+            }
+
+            .device-item:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            }
+
+            .device-item.active {
+                border-color: #28a745;
+                background-color: rgba(40, 167, 69, 0.1);
+            }
+
+            .device-item.inactive {
+                border-color: #dc3545;
+                background-color: rgba(220, 53, 69, 0.1);
+            }
+
+            .device-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 0.5rem;
+            }
+
+            .device-name {
+                font-weight: 600;
+                font-size: 1.1rem;
+            }
+
+            .device-status {
+                padding: 0.25rem 0.5rem;
+                border-radius: 4px;
+                font-size: 0.875rem;
+            }
+
+            .device-status.active {
+                background-color: #28a745;
+                color: white;
+            }
+
+            .device-status.inactive {
+                background-color: #dc3545;
+                color: white;
+            }
+
+            .device-stats {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.5rem;
+                font-size: 0.875rem;
+            }
+
+            .stat-item {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .stat-label {
+                color: #6c757d;
+                font-size: 0.75rem;
+            }
+
+            .stat-value {
+                font-weight: 600;
+            }
+
+            .last-activity {
+                font-size: 0.75rem;
+                color: #6c757d;
+                margin-top: 0.5rem;
+                text-align: right;
+            }
+
+            .status-indicator {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 6px 12px;
+                border-radius: 16px;
+                font-size: 14px;
+                font-weight: 500;
+            }
+
+            .status-dot {
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                display: inline-block;
+            }
+
+            .status-active {
+                background-color: #ebf7ee;
+                color: #2e7d32;
+            }
+
+            .status-active .status-dot {
+                background-color: #2e7d32;
+                animation: pulse 2s infinite;
+            }
+
+            .status-inactive {
+                background-color: #fef2f2;
+                color: #dc2626;
+            }
+
+            .status-inactive .status-dot {
+                background-color: #dc2626;
+            }
+
+            @keyframes pulse {
+                0% {
+                    transform: scale(0.95);
+                    box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.7);
+                }
+
+                70% {
+                    transform: scale(1);
+                    box-shadow: 0 0 0 6px rgba(46, 125, 50, 0);
+                }
+
+                100% {
+                    transform: scale(0.95);
+                    box-shadow: 0 0 0 0 rgba(46, 125, 50, 0);
+                }
+            }
+
+            .connection-status {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 12px;
+                border-radius: 8px;
+                background-color: #f8f9fa;
+                margin-top: 1rem;
+            }
+
+            .connection-indicator {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 6px 12px;
+                border-radius: 16px;
+                font-size: 14px;
+                font-weight: 500;
+            }
+
+            .connection-dot {
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                display: inline-block;
+            }
+
+            .connection-connected {
+                background-color: #ebf7ee;
+                color: #2e7d32;
+            }
+
+            .connection-connected .connection-dot {
+                background-color: #2e7d32;
+                animation: pulse 2s infinite;
+            }
+
+            .connection-disconnected {
+                background-color: #fef2f2;
+                color: #dc2626;
+            }
+
+            .connection-disconnected .connection-dot {
+                background-color: #dc2626;
+            }
+
+            .connection-connecting {
+                background-color: #eff6ff;
+                color: #2563eb;
+            }
+
+            .connection-connecting .connection-dot {
+                background-color: #2563eb;
+                animation: spin 1s linear infinite;
+            }
+
+            @keyframes spin {
+                0% {
+                    transform: rotate(0deg);
+                }
+
+                100% {
+                    transform: rotate(360deg);
+                }
+            }
+
+            .connection-info {
+                font-size: 12px;
+                color: #6b7280;
+                margin-top: 4px;
+            }
         </style>
     </th:block>
 </head>
@@ -86,9 +294,23 @@
     <main layout:fragment="content">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="h3 mb-0">Resumo do dia</h1>
-            <a href="/monitor" class="btn btn-primary">
-                <i class="fas fa-desktop"></i> Monitor em Tempo Real
-            </a>
+
+            <div class="connection-status">
+                <div class="connection-indicator" id="connectionIndicator">
+                    <span class="connection-dot"></span>
+
+                    <i class="fas fa-desktop"></i>
+                    <span id="connectionText">Conectando...</span>
+                </div>
+                <div class="connection-info" id="connectionInfo">
+                    Última atualização: <span id="lastUpdate">-</span>
+
+                </div>
+
+
+            </div>
+
+
         </div>
 
         <!-- Estatísticas -->
@@ -178,22 +400,7 @@
                     </div>
                     <div class="card-body">
                         <div id="notification" class="notification"></div>
-                        <div id="connectionStatus" class="connection-status">Conectando...</div>
-                        <div class="monitor-table table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Número</th>
-                                        <th>Data/Hora</th>
-                                        <th>Status</th>
-                                        <th>Dispositivo</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="monitorTable">
-                                    <!-- Preenchido via JavaScript -->
-                                </tbody>
-                            </table>
-                        </div>
+
                     </div>
                 </div>
             </div>
@@ -202,26 +409,56 @@
             <div class="col-md-4">
                 <div class="card h-100">
                     <div class="card-header">
-                        <h5 class="card-title mb-0">Dispositivos Conectados</h5>
+                        <h5 class="card-title mb-0">Dispositivos (24h)</h5>
                     </div>
                     <div class="card-body">
-                        <div class="chart-container">
-                            <canvas id="deviceChart"></canvas>
+                        <div class="devices-diagram">
+                            <div id="devicesList" class="devices-list">
+                                <div class="device-item" v-for="device in activeDevices" :key="device.deviceId">
+                                    <div class="device-header">
+                                        <span class="device-name">{{device.deviceId}}</span>
+                                        <div class="status-indicator"
+                                            :class="device.isActive ? 'status-active' : 'status-inactive'">
+                                            <span class="status-dot"></span>
+                                            <span>{{device.isActive ? 'Online' : 'Offline'}}</span>
+                                        </div>
+                                    </div>
+                                    <div class="device-stats">
+                                        <div class="stat-row">
+                                            <span class="stat-label">Total de chamadas:</span>
+                                            <span class="stat-value">{{device.totalCalls}}</span>
+                                        </div>
+                                        <div class="stat-row">
+                                            <span class="stat-label">Atendidas:</span>
+                                            <span class="stat-value">{{device.answeredCalls}}</span>
+                                        </div>
+                                        <div class="stat-row">
+                                            <span class="stat-label">Perdidas:</span>
+                                            <span class="stat-value">{{device.missedCalls}}</span>
+                                        </div>
+                                        <div class="stat-row">
+                                            <span class="stat-label">Taxa de atendimento:</span>
+                                            <span class="stat-value">{{device.answerRate}}%</span>
+                                        </div>
+                                        <div class="stat-row">
+                                            <span class="stat-label">Última atividade:</span>
+                                            <span class="stat-value">{{device.lastActivity}}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-
         <script>
-
         </script>
     </main>
 
     <th:block layout:fragment="scripts">
         <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
         <script th:src="@{/js/index.js}"></script>
