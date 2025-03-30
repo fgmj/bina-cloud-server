@@ -48,25 +48,38 @@ public class UsuarioDispositivoService {
     public UsuarioDispositivoDTO associarDispositivo(Long usuarioId, Long dispositivoId) {
         log.info("Associando dispositivo {} ao usuário {}", dispositivoId, usuarioId);
 
-        if (usuarioDispositivoRepository.existsByUsuarioIdAndDispositivoIdAndAtivoTrue(usuarioId, dispositivoId)) {
-            throw new RuntimeException("Este dispositivo já está associado ao usuário");
+        // Verificar se já existe uma associação ativa
+        Optional<UsuarioDispositivo> existingAssociation = usuarioDispositivoRepository
+                .findByUsuarioIdAndDispositivoIdAndAtivoTrue(usuarioId, dispositivoId);
+
+        if (existingAssociation.isPresent()) {
+            log.info("Associação já existe entre usuário {} e dispositivo {}", usuarioId, dispositivoId);
+            return convertToDTO(existingAssociation.get());
         }
 
-        Usuario usuario = usuarioRepository.findById(usuarioId)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+        // Verificar se existe uma associação inativa que pode ser reativada
+        Optional<UsuarioDispositivo> inactiveAssociation = usuarioDispositivoRepository
+                .findByUsuarioIdAndDispositivoIdAndAtivoFalse(usuarioId, dispositivoId);
 
-        Dispositivo dispositivo = dispositivoRepository.findById(dispositivoId)
-                .orElseThrow(() -> new RuntimeException("Dispositivo não encontrado"));
+        if (inactiveAssociation.isPresent()) {
+            UsuarioDispositivo association = inactiveAssociation.get();
+            association.setAtivo(true);
+            association.setDataRemocao(null);
+            log.info("Reativando associação existente entre usuário {} e dispositivo {}", usuarioId, dispositivoId);
+            return convertToDTO(usuarioDispositivoRepository.save(association));
+        }
 
+        // Criar nova associação
         UsuarioDispositivo usuarioDispositivo = new UsuarioDispositivo();
-        usuarioDispositivo.setUsuario(usuario);
-        usuarioDispositivo.setDispositivo(dispositivo);
+        usuarioDispositivo.setUsuario(usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado")));
+        usuarioDispositivo.setDispositivo(dispositivoRepository.findById(dispositivoId)
+                .orElseThrow(() -> new RuntimeException("Dispositivo não encontrado")));
+        usuarioDispositivo.setDataAssociacao(LocalDateTime.now());
         usuarioDispositivo.setAtivo(true);
 
-        UsuarioDispositivo associacaoSalva = usuarioDispositivoRepository.save(usuarioDispositivo);
-        log.info("Dispositivo associado com sucesso ao usuário");
-
-        return convertToDTO(associacaoSalva);
+        log.info("Criando nova associação entre usuário {} e dispositivo {}", usuarioId, dispositivoId);
+        return convertToDTO(usuarioDispositivoRepository.save(usuarioDispositivo));
     }
 
     @Transactional

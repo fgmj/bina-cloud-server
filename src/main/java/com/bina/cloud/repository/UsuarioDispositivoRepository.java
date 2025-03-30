@@ -16,6 +16,8 @@ public interface UsuarioDispositivoRepository extends JpaRepository<UsuarioDispo
 
     Optional<UsuarioDispositivo> findByUsuarioIdAndDispositivoIdAndAtivoTrue(Long usuarioId, Long dispositivoId);
 
+    Optional<UsuarioDispositivo> findByUsuarioIdAndDispositivoIdAndAtivoFalse(Long usuarioId, Long dispositivoId);
+
     boolean existsByUsuarioIdAndDispositivoIdAndAtivoTrue(Long usuarioId, Long dispositivoId);
 
     void deleteByUsuarioIdAndDispositivoId(Long usuarioId, Long dispositivoId);

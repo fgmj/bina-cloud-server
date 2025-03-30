@@ -28,6 +28,8 @@ async function loadUserDevices(userId) {
         const response = await fetch(`/api/usuarios-dispositivos/usuario/${userId}`);
         const devices = await response.json();
         displayUserDevices(devices);
+        // Mostrar/ocultar mensagem de "nenhum dispositivo"
+        document.getElementById('noAssociatedDevices').classList.toggle('d-none', devices.length > 0);
     } catch (error) {
         showError('Erro ao carregar dispositivos: ' + error.message);
     }
@@ -36,13 +38,27 @@ async function loadUserDevices(userId) {
 async function searchDevices() {
     const searchTerm = document.getElementById('deviceSearch').value;
     try {
-        const response = await fetch('/api/dispositivos');
-        const devices = await response.json();
+        // Buscar todos os dispositivos
+        const devicesResponse = await fetch('/api/dispositivos');
+        const devices = await devicesResponse.json();
+
+        // Buscar dispositivos já associados ao usuário
+        const associatedDevicesResponse = await fetch(`/api/usuarios-dispositivos/usuario/${currentUserId}`);
+        const associatedDevices = await associatedDevicesResponse.json();
+
+        // Criar um Set com os IDs dos dispositivos já associados
+        const associatedDeviceIds = new Set(associatedDevices.map(device => device.dispositivoId));
+
+        // Filtrar dispositivos que não estão associados e correspondem ao termo de busca
         const filteredDevices = devices.filter(device =>
-            device.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            device.identificador.toLowerCase().includes(searchTerm.toLowerCase())
+            !associatedDeviceIds.has(device.id) && // Não está associado ao usuário
+            (device.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                device.identificador.toLowerCase().includes(searchTerm.toLowerCase()))
         );
+
         displayAvailableDevices(filteredDevices);
+        // Mostrar/ocultar mensagem de "nenhum dispositivo"
+        document.getElementById('noAvailableDevices').classList.toggle('d-none', filteredDevices.length > 0);
     } catch (error) {
         showError('Erro ao buscar dispositivos: ' + error.message);
     }
@@ -90,16 +106,27 @@ function displayUserDevices(devices) {
     devices.forEach(device => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${device.nomeDispositivo}</td>
-            <td>${device.dispositivoId}</td>
+            <td>
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-hdd-network text-primary me-2"></i>
+                    <span>${device.nomeDispositivo}</span>
+                </div>
+            </td>
+            <td>
+                <span class="badge bg-secondary">${device.dispositivoId}</span>
+            </td>
             <td>
                 <span class="badge ${device.ativo ? 'bg-success' : 'bg-danger'}">
+                    <i class="bi ${device.ativo ? 'bi-check-circle' : 'bi-x-circle'} me-1"></i>
                     ${device.ativo ? 'Ativo' : 'Inativo'}
                 </span>
             </td>
-            <td>${moment(device.dataAssociacao).format('DD/MM/YYYY HH:mm:ss')}</td>
             <td>
-                <button class="btn btn-sm btn-outline-danger" onclick="removeDevice(${device.id})">
+                <i class="bi bi-calendar3 me-1"></i>
+                ${moment(device.dataAssociacao).format('DD/MM/YYYY HH:mm:ss')}
+            </td>
+            <td>
+                <button class="btn btn-sm btn-outline-danger" onclick="removeDevice(${device.id})" title="Remover dispositivo">
                     <i class="bi bi-trash"></i>
                 </button>
             </td>
@@ -109,22 +136,33 @@ function displayUserDevices(devices) {
 }
 
 function displayAvailableDevices(devices) {
-    const tbody = document.getElementById('deviceTableBody');
+    const tbody = document.getElementById('availableDeviceTableBody');
     tbody.innerHTML = '';
 
     devices.forEach(device => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${device.nome}</td>
-            <td>${device.identificador}</td>
+            <td>
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-hdd-network text-primary me-2"></i>
+                    <span>${device.nome}</span>
+                </div>
+            </td>
+            <td>
+                <span class="badge bg-secondary">${device.identificador}</span>
+            </td>
             <td>
                 <span class="badge ${device.ativo ? 'bg-success' : 'bg-danger'}">
+                    <i class="bi ${device.ativo ? 'bi-check-circle' : 'bi-x-circle'} me-1"></i>
                     ${device.ativo ? 'Ativo' : 'Inativo'}
                 </span>
             </td>
-            <td>${moment(device.ultimoAcesso).format('DD/MM/YYYY HH:mm:ss')}</td>
             <td>
-                <button class="btn btn-sm btn-outline-primary" onclick="addDevice(${device.id})">
+                <i class="bi bi-clock me-1"></i>
+                ${moment(device.ultimoAcesso).format('DD/MM/YYYY HH:mm:ss')}
+            </td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary" onclick="addDevice(${device.id})" title="Adicionar dispositivo">
                     <i class="bi bi-plus-circle"></i>
                 </button>
             </td>
@@ -165,8 +203,34 @@ function openEditModal(userId) {
 function openDeviceModal(userId) {
     currentUserId = userId;
     document.getElementById('deviceSearch').value = '';
+
+    // Carregar dados iniciais
     loadUserDevices(userId);
+    searchDevices();
+
+    // Mostrar a primeira aba
+    const firstTab = document.querySelector('#deviceTabs .nav-link');
+    const firstTabContent = document.querySelector('#deviceTabsContent .tab-pane');
+    firstTab.classList.add('active');
+    firstTabContent.classList.add('show');
+
     deviceModal.show();
+}
+
+// Adicionar evento de busca em tempo real
+document.getElementById('deviceSearch').addEventListener('input', debounce(searchDevices, 300));
+
+// Função de debounce para limitar chamadas de API
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
 }
 
 // Funções de salvamento
@@ -237,7 +301,10 @@ async function addDevice(deviceId) {
             throw new Error('Erro ao adicionar dispositivo');
         }
 
+        // Atualizar a lista de dispositivos associados
         loadUserDevices(currentUserId);
+        // Atualizar a lista de dispositivos disponíveis
+        searchDevices();
         showSuccess('Dispositivo adicionado com sucesso!');
     } catch (error) {
         showError('Erro ao adicionar dispositivo: ' + error.message);
@@ -258,7 +325,10 @@ async function removeDevice(associationId) {
             throw new Error('Erro ao remover dispositivo');
         }
 
+        // Atualizar a lista de dispositivos associados
         loadUserDevices(currentUserId);
+        // Atualizar a lista de dispositivos disponíveis
+        searchDevices();
         showSuccess('Dispositivo removido com sucesso!');
     } catch (error) {
         showError('Erro ao remover dispositivo: ' + error.message);
