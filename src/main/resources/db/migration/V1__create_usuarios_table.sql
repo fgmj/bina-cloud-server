@@ -1,0 +1,9 @@
+CREATE TABLE usuarios (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    data_criacao TIMESTAMP,
+    ultimo_acesso TIMESTAMP,
+    ativo BOOLEAN DEFAULT TRUE
+); 

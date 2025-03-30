@@ -66,6 +66,13 @@
                     <span>Dispositivos</span>
                 </a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/usuarios}"
+                    th:classappend="${currentPage == 'usuarios' ? 'active' : ''}">
+                    <i class="fas fa-users"></i>
+                    <span>Usuários</span>
+                </a>
+            </li>
         </ul>
     </nav>
 

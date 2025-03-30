@@ -231,6 +231,20 @@ function handleNewEvent(event) {
 
         // Atualizar a tabela de monitoramento imediatamente
         if (eventParsed.phoneNumber) {
+            if (eventParsed.additionalData) {
+                try {
+                    const additionalData = JSON.parse(event.additionalData);
+                    if (additionalData.numero) {
+                        event.url = `https://portal.gasdelivery.com.br/secure/client/?primary_phone=${additionalData.numero}`;
+                        // Abrir URL em nova aba
+                        chrome.tabs.create({ url: event.url });
+                    }
+                } catch (error) {
+                    console.warn('Erro ao processar additionalData', error);
+                }
+            }
+
+
             // Abrir URL em nova aba se disponível
             if (eventParsed.url && eventParsed.url.trim() !== '') {
                 console.log('Opening URL:', eventParsed.url);
