@@ -75,10 +75,9 @@
                             <thead>
                                 <tr>
                                     <th style="width: 100px">Status</th>
-                                    <th style="width: 200px">ID</th>
+                                    <th>Identificador</th>
                                     <th>Nome</th>
-                                    <th>Tipo</th>
-                                    <th>Localização</th>
+                                    <th>Data Cadastro</th>
                                     <th>Última Conexão</th>
                                     <th style="width: 150px">Ações</th>
                                 </tr>
@@ -93,12 +92,12 @@
                                             <i class="fas fa-times-circle me-1"></i>Inativo
                                         </span>
                                     </td>
-                                    <td th:text="${dispositivo.id}"></td>
+                                    <td th:text="${dispositivo.identificador}"></td>
                                     <td th:text="${dispositivo.nome}"></td>
-                                    <td th:text="${dispositivo.tipoDispositivo}"></td>
-                                    <td th:text="${dispositivo.localizacao}"></td>
+                                    <td th:text="${#temporals.format(dispositivo.dataCadastro, 'dd/MM/yyyy HH:mm:ss')}">
+                                    </td>
                                     <td
-                                        th:text="${#temporals.format(dispositivo.lastConnection, 'dd/MM/yyyy HH:mm:ss')}">
+                                        th:text="${dispositivo.ultimaConexao != null ? #temporals.format(dispositivo.ultimaConexao, 'dd/MM/yyyy HH:mm:ss') : 'Nunca'}">
                                     </td>
                                     <td>
                                         <div class="btn-group">
@@ -127,43 +126,78 @@
         </div>
 
         <!-- Modal de Confirmação de Exclusão -->
-        <div th:replace="~{dispositivos/delete-modal :: deleteModal}"></div>
+        <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="deleteModalLabel">Confirmar Exclusão</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Tem certeza que deseja excluir o dispositivo <strong id="deviceName"></strong>?</p>
+                        <p class="text-danger">Esta ação não pode ser desfeita.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-danger" id="confirmDelete">Excluir</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
 
-    <!-- Scripts -->
     <th:block layout:fragment="scripts">
-        <script th:replace="~{dispositivos/delete-modal :: deleteModalScript}"></script>
         <script>
             document.addEventListener('DOMContentLoaded', function () {
+                const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+                let deleteId = null;
+
+                // Configurar botões de exclusão
+                document.querySelectorAll('.btn-excluir').forEach(button => {
+                    button.addEventListener('click', function () {
+                        deleteId = this.getAttribute('data-id');
+                        const deviceName = this.getAttribute('data-nome');
+                        document.getElementById('deviceName').textContent = deviceName;
+                        deleteModal.show();
+                    });
+                });
+
+                // Configurar botão de confirmação de exclusão
+                document.getElementById('confirmDelete').addEventListener('click', function () {
+                    if (deleteId) {
+                        fetch(`/api/dispositivos/${deleteId}`, {
+                            method: 'DELETE'
+                        }).then(response => {
+                            if (response.ok) {
+                                window.location.reload();
+                            } else {
+                                alert('Erro ao excluir dispositivo');
+                            }
+                        }).catch(error => {
+                            console.error('Erro:', error);
+                            alert('Erro ao excluir dispositivo');
+                        });
+                    }
+                });
+
                 // Configurar botões de desativação
                 document.querySelectorAll('.btn-desativar').forEach(button => {
                     button.addEventListener('click', function () {
                         const id = this.getAttribute('data-id');
                         if (confirm('Tem certeza que deseja desativar este dispositivo?')) {
-                            const form = document.createElement('form');
-                            form.method = 'POST';
-                            form.action = `/dispositivos/${id}/desativar`;
-
-                            const methodInput = document.createElement('input');
-                            methodInput.type = 'hidden';
-                            methodInput.name = '_method';
-                            methodInput.value = 'PATCH';
-                            form.appendChild(methodInput);
-
-                            document.body.appendChild(form);
-                            form.submit();
+                            fetch(`/api/dispositivos/${id}/desativar`, {
+                                method: 'PUT'
+                            }).then(response => {
+                                if (response.ok) {
+                                    window.location.reload();
+                                } else {
+                                    alert('Erro ao desativar dispositivo');
+                                }
+                            }).catch(error => {
+                                console.error('Erro:', error);
+                                alert('Erro ao desativar dispositivo');
+                            });
                         }
-                    });
-                });
-
-                // Configurar botões de exclusão
-                document.querySelectorAll('.btn-excluir').forEach(button => {
-                    button.addEventListener('click', function () {
-                        const id = this.getAttribute('data-id');
-                        const nome = this.getAttribute('data-nome');
-                        setupDeleteModal(id, nome);
-                        const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-                        deleteModal.show();
                     });
                 });
             });

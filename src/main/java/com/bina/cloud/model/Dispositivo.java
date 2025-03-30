@@ -3,51 +3,44 @@ package com.bina.cloud.model;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Data
 @NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "dispositivos")
 public class Dispositivo {
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @Column(nullable = false)
     private String nome;
 
-    @Column(length = 500)
-    private String descricao;
+    @Column(nullable = false, unique = true)
+    private String identificador;
 
-    @Column(name = "data_cadastro", nullable = false)
+    @Column(name = "data_cadastro")
     private LocalDateTime dataCadastro;
 
-    @Column(name = "ultima_atualizacao")
-    private LocalDateTime ultimaAtualizacao;
-
     @Column(name = "ultima_conexao")
-    private LocalDateTime lastConnection;
+    private LocalDateTime ultimaConexao;
 
-    @Column(length = 50)
-    private String versao;
-
-    @Column(name = "tipo_dispositivo", length = 50)
-    private String tipoDispositivo;
-
-    @Column(length = 100)
-    private String localizacao;
-
+    @Column(nullable = false)
     private boolean ativo = true;
+
+    @OneToMany(mappedBy = "dispositivo", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
+    private List<UsuarioDispositivo> usuarios = new ArrayList<>();
 
     @PrePersist
     protected void onCreate() {
         dataCadastro = LocalDateTime.now();
-        ultimaAtualizacao = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        ultimaAtualizacao = LocalDateTime.now();
     }
 }

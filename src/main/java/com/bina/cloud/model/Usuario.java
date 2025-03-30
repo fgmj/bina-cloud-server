@@ -5,6 +5,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -32,8 +34,11 @@ public class Usuario {
     @Column(name = "ultimo_acesso")
     private LocalDateTime ultimoAcesso;
 
-    @Column(name = "ativo")
+    @Column(nullable = false)
     private boolean ativo = true;
+
+    @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL)
+    private List<UsuarioDispositivo> dispositivos = new ArrayList<>();
 
     @PrePersist
     protected void onCreate() {

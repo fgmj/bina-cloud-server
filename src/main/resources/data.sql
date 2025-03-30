@@ -74,3 +74,24 @@ INSERT INTO eventos (phone_number, timestamp, device_id, event_type, description
 ('11999990040', '2025-03-17 16:45:00', 'device-002', 'MISSED', 'Chamada perdida'),
 ('11999990041', '2025-03-17 17:00:00', 'device-001', 'ANSWERED', 'Chamada atendida'),
 ('11999990042', '2025-03-17 18:15:00', 'device-002', 'ANSWERED', 'Chamada atendida'); 
+
+
+-- Insert sample users
+INSERT INTO usuarios (nome, email, password, data_criacao,  ativo) VALUES
+    ('Admin User', 'admin@example.com', '123456',  NOW(), TRUE),
+    ('User 1', 'user1@example.com', '123456',  NOW(), TRUE),
+    ('User 2', 'user2@example.com', '123456', NOW(), TRUE);
+
+-- Insert sample devices
+INSERT INTO dispositivos (nome, identificador, data_cadastro, ultima_conexao, ativo) VALUES
+('Device 1', 'DEVICE_1', NOW(), NOW(), TRUE),
+('Device 2', 'DEVICE_2', NOW(), NOW(), TRUE),
+('Device 3', 'DEVICE_3', NOW(), NOW(), TRUE);
+
+-- Insert sample user-device associations
+INSERT INTO usuario_dispositivo (usuario_id, dispositivo_id, data_associacao, ativo) VALUES
+(1, 1, NOW(), TRUE),
+(1, 2, NOW(), TRUE),
+(1, 3, NOW(), TRUE),
+(2, 2, NOW(), TRUE),
+(3, 3, NOW(), TRUE);

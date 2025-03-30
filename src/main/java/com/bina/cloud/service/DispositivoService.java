@@ -20,34 +20,56 @@ public class DispositivoService {
 
     @Transactional(readOnly = true)
     public List<Dispositivo> listarTodos() {
-        return dispositivoRepository.findAll();
+        log.info("Listando todos os dispositivos");
+        List<Dispositivo> dispositivos = dispositivoRepository.findAll();
+        // Force initialization of the usuarios collection
+        dispositivos.forEach(d -> d.getUsuarios().size());
+        log.info("Total de dispositivos encontrados: {}", dispositivos.size());
+        return dispositivos;
     }
 
     @Transactional(readOnly = true)
     public List<Dispositivo> listarAtivos() {
-        return dispositivoRepository.findByAtivoTrue();
+        log.info("Listando dispositivos ativos");
+        List<Dispositivo> dispositivos = dispositivoRepository.findByAtivoTrue();
+        // Force initialization of the usuarios collection
+        dispositivos.forEach(d -> d.getUsuarios().size());
+        return dispositivos;
     }
 
     @Transactional(readOnly = true)
-    public Optional<Dispositivo> buscarPorId(String id) {
+    public Optional<Dispositivo> buscarPorId(Long id) {
         log.info("Buscando dispositivo por ID: {}", id);
         Optional<Dispositivo> dispositivo = dispositivoRepository.findById(id);
+        dispositivo.ifPresent(d -> d.getUsuarios().size()); // Force initialization
+        log.info("Dispositivo encontrado: {}", dispositivo.isPresent());
+        return dispositivo;
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Dispositivo> buscarPorIdentificador(String identificador) {
+        log.info("Buscando dispositivo por identificador: {}", identificador);
+        Optional<Dispositivo> dispositivo = dispositivoRepository.findByIdentificador(identificador);
+        dispositivo.ifPresent(d -> d.getUsuarios().size()); // Force initialization
         log.info("Dispositivo encontrado: {}", dispositivo.isPresent());
         return dispositivo;
     }
 
     @Transactional
     public Dispositivo salvar(Dispositivo dispositivo) {
+        log.info("Salvando dispositivo: {}", dispositivo.getNome());
         return dispositivoRepository.save(dispositivo);
     }
 
     @Transactional
-    public void excluir(String id) {
+    public void excluir(Long id) {
+        log.info("Excluindo dispositivo com ID: {}", id);
         dispositivoRepository.deleteById(id);
     }
 
     @Transactional
-    public Dispositivo desativar(String id) {
+    public Dispositivo desativar(Long id) {
+        log.info("Desativando dispositivo com ID: {}", id);
         return dispositivoRepository.findById(id)
                 .map(dispositivo -> {
                     dispositivo.setAtivo(false);
@@ -57,31 +79,30 @@ public class DispositivoService {
     }
 
     @Transactional
-    public Dispositivo registrarConexao(String id) {
-        return dispositivoRepository.findById(id)
+    public Dispositivo registrarConexao(String identificador) {
+        log.info("Registrando conexão para dispositivo: {}", identificador);
+        return buscarPorIdentificador(identificador)
                 .map(dispositivo -> {
-                    dispositivo.setLastConnection(LocalDateTime.now());
+                    dispositivo.setUltimaConexao(LocalDateTime.now());
                     return dispositivoRepository.save(dispositivo);
                 })
                 .orElseGet(() -> {
                     // Auto-cadastro do dispositivo
                     Dispositivo novoDispositivo = new Dispositivo();
-                    novoDispositivo.setId(id);
-                    novoDispositivo.setNome("Dispositivo " + id);
-                    novoDispositivo.setLastConnection(LocalDateTime.now());
+                    novoDispositivo.setNome("Dispositivo " + identificador);
+                    novoDispositivo.setIdentificador(identificador);
+                    novoDispositivo.setUltimaConexao(LocalDateTime.now());
                     return dispositivoRepository.save(novoDispositivo);
                 });
     }
 
     @Transactional
-    public Dispositivo atualizar(String id, Dispositivo dispositivoAtualizado) {
+    public Dispositivo atualizar(Long id, Dispositivo dispositivoAtualizado) {
+        log.info("Atualizando dispositivo com ID: {}", id);
         return dispositivoRepository.findById(id)
                 .map(dispositivo -> {
                     dispositivo.setNome(dispositivoAtualizado.getNome());
-                    dispositivo.setDescricao(dispositivoAtualizado.getDescricao());
-                    dispositivo.setVersao(dispositivoAtualizado.getVersao());
-                    dispositivo.setTipoDispositivo(dispositivoAtualizado.getTipoDispositivo());
-                    dispositivo.setLocalizacao(dispositivoAtualizado.getLocalizacao());
+                    dispositivo.setIdentificador(dispositivoAtualizado.getIdentificador());
                     dispositivo.setAtivo(dispositivoAtualizado.isAtivo());
                     return dispositivoRepository.save(dispositivo);
                 })
@@ -89,30 +110,22 @@ public class DispositivoService {
     }
 
     @Transactional
-    public void atualizarUltimaConexao(String deviceId) {
-        Dispositivo dispositivo = dispositivoRepository.findById(deviceId)
+    public void atualizarUltimaConexao(String identificador) {
+        log.info("Atualizando última conexão para dispositivo: {}", identificador);
+        Dispositivo dispositivo = buscarPorIdentificador(identificador)
                 .orElseGet(() -> {
                     Dispositivo novo = new Dispositivo();
-                    novo.setId(deviceId);
-                    novo.setNome(deviceId);
-                    novo.setTipoDispositivo("Telefone");
-                    novo.setLocalizacao("Localização não especificada");
+                    novo.setNome("Dispositivo " + identificador);
+                    novo.setIdentificador(identificador);
                     return novo;
                 });
 
-        dispositivo.setLastConnection(LocalDateTime.now());
+        dispositivo.setUltimaConexao(LocalDateTime.now());
         dispositivoRepository.save(dispositivo);
-        log.info("Última conexão atualizada para o dispositivo {}: {}", deviceId, dispositivo.getLastConnection());
+        log.info("Última conexão atualizada para o dispositivo {}: {}", identificador, dispositivo.getUltimaConexao());
     }
 
-    public List<Dispositivo> listarDispositivos() {
-        log.info("Listando todos os dispositivos");
-        List<Dispositivo> dispositivos = dispositivoRepository.findAll();
-        log.info("Total de dispositivos encontrados: {}", dispositivos.size());
-        return dispositivos;
-    }
-
-    public boolean existePorId(String id) {
+    public boolean existePorId(Long id) {
         return dispositivoRepository.existsById(id);
     }
 }

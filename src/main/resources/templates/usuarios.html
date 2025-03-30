@@ -17,34 +17,38 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h1 class="h3 mb-0">Gerenciamento de Usuários</h1>
                 <button class="btn btn-primary" onclick="openCreateModal()">
-                    <i class="bi bi-plus-lg"></i> Novo Usuário
+                    <i class="bi bi-plus-circle"></i> Novo Usuário
                 </button>
             </div>
 
-            <div class="card">
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Nome</th>
-                                    <th>Email</th>
-                                    <th>Status</th>
-                                    <th>Data de Criação</th>
-                                    <th>Último Acesso</th>
-                                    <th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody id="userList">
-                                <!-- Users will be loaded here -->
-                            </tbody>
-                        </table>
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Nome</th>
+                                            <th>E-mail</th>
+                                            <th>Data de Criação</th>
+                                            <th>Último Acesso</th>
+                                            <th>Status</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="userTableBody">
+                                        <!-- Users will be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Modal para criar/editar usuário -->
+        <!-- Modal de Criação/Edição de Usuário -->
         <div class="modal fade" id="userModal" tabindex="-1">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -54,6 +58,7 @@
                     </div>
                     <div class="modal-body">
                         <form id="userForm">
+                            <input type="hidden" id="userId">
                             <div class="mb-3">
                                 <label for="nome" class="form-label">Nome Completo</label>
                                 <input type="text" class="form-control" id="nome" required>
@@ -65,11 +70,13 @@
                             <div class="mb-3">
                                 <label for="password" class="form-label">Senha</label>
                                 <input type="password" class="form-control" id="password">
-                                <div class="form-text">Deixe em branco para manter a senha atual ao editar</div>
+                                <small class="text-muted">Deixe em branco para manter a senha atual ao editar</small>
                             </div>
-                            <div class="mb-3 form-check">
-                                <input type="checkbox" class="form-check-input" id="ativo" checked>
-                                <label class="form-check-label" for="ativo">Ativo</label>
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="ativo" checked>
+                                    <label class="form-check-label" for="ativo">Ativo</label>
+                                </div>
                             </div>
                         </form>
                     </div>
@@ -80,6 +87,53 @@
                 </div>
             </div>
         </div>
+
+        <!-- Modal de Gerenciamento de Dispositivos -->
+        <div class="modal fade" id="deviceModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Gerenciar Dispositivos do Usuário</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row mb-3">
+                            <div class="col">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="deviceSearch"
+                                        placeholder="Buscar dispositivo...">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="searchDevices()">
+                                        <i class="bi bi-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Nome</th>
+                                        <th>Identificador</th>
+                                        <th>Status</th>
+                                        <th>Último Acesso</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="deviceTableBody">
+                                    <!-- Devices will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Elemento para notificações -->
+        <div id="notification" class="notification"></div>
     </div>
 
     <th:block layout:fragment="scripts">

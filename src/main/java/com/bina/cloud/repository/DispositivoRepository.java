@@ -5,14 +5,19 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
-public interface DispositivoRepository extends JpaRepository<Dispositivo, String> {
+public interface DispositivoRepository extends JpaRepository<Dispositivo, Long> {
     List<Dispositivo> findByAtivoTrue();
 
-    List<Dispositivo> findByAtivoTrueOrderByLastConnectionDesc();
+    List<Dispositivo> findByAtivoTrueOrderByUltimaConexaoDesc();
 
-    boolean existsById(String id);
+    boolean existsById(Long id);
 
-    List<Dispositivo> findByLastConnectionAfter(LocalDateTime dateTime);
+    List<Dispositivo> findByUltimaConexaoAfter(LocalDateTime dateTime);
+
+    Optional<Dispositivo> findByIdentificador(String identificador);
+
+    boolean existsByIdentificador(String identificador);
 }
