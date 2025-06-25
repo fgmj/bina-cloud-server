@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
@@ -20,11 +21,12 @@ public class EventoService {
     private final NotificationService notificationService;
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
     private final ZoneId brasiliaZone = ZoneId.of("America/Sao_Paulo");
+    private final ZoneId utcZone = ZoneId.of("UTC");
 
     @Transactional
     public Evento criarEvento(Evento evento) {
-        // Usar fuso horário de Brasília
-        evento.setTimestamp(LocalDateTime.now(brasiliaZone));
+        // Salvar em UTC no banco de dados
+        evento.setTimestamp(LocalDateTime.now(utcZone));
 
         // Extrair número de telefone do additionalData e salvar no campo phoneNumber
         String phoneNumber = extractPhoneNumber(evento.getAdditionalData());
@@ -32,13 +34,16 @@ public class EventoService {
 
         Evento eventoSalvo = eventoRepository.save(evento);
 
+        // Converter para Brasília para exibição na notificação
+        ZonedDateTime brasiliaTime = eventoSalvo.getTimestamp().atZone(utcZone).withZoneSameInstant(brasiliaZone);
+
         // Notificar via WebSocket
         notificationService.notifyNewEvent(
                 eventoSalvo.getId().toString(),
                 eventoSalvo.getDescription(),
                 eventoSalvo.getEventType(),
                 eventoSalvo.getDeviceId(),
-                eventoSalvo.getTimestamp().format(formatter),
+                brasiliaTime.format(formatter),
                 eventoSalvo.getAdditionalData());
 
         return eventoSalvo;

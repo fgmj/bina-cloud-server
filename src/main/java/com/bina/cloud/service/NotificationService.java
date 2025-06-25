@@ -20,6 +20,7 @@ public class NotificationService {
     private final SimpMessagingTemplate messagingTemplate;
     private final EventoRepository eventoRepository;
     private final ZoneId brasiliaZone = ZoneId.of("America/Sao_Paulo");
+    private final ZoneId utcZone = ZoneId.of("UTC");
 
     public void notifyNewEvent(String eventId, String eventTitle, String eventType, String deviceId, String timestamp,
             String additionalData) {
@@ -86,7 +87,7 @@ public class NotificationService {
 
             if (previousEvents.size() > 1) { // Mais de 1 porque o atual já está incluído
                 Evento lastCall = previousEvents.get(1); // Pega o segundo (anterior ao atual)
-                LocalDateTime now = LocalDateTime.now(brasiliaZone);
+                LocalDateTime now = LocalDateTime.now(utcZone);
                 Duration duration = Duration.between(lastCall.getTimestamp(), now);
 
                 return formatDuration(duration);
