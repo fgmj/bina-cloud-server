@@ -518,6 +518,7 @@
                             <span class="event-time">
                                 <i class="bi bi-calendar3"></i>
                                 <span th:text="${#temporals.format(evento.timestamp, 'dd/MM/yyyy HH:mm:ss')}">N/A</span>
+                                <small class="text-muted">(Brasília)</small>
                             </span>
                         </div>
                         <div class="event-details">
@@ -705,6 +706,7 @@
                     <span class="event-time">
                         <i class="bi bi-clock"></i>
                         ${event.timestamp || 'N/A'}
+                        <small class="text-muted">(Brasília)</small>
                     </span>
                 </div>
                 <div class="event-details">

@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.Duration;
 import java.util.List;
 
@@ -18,6 +19,7 @@ public class NotificationService {
 
     private final SimpMessagingTemplate messagingTemplate;
     private final EventoRepository eventoRepository;
+    private final ZoneId brasiliaZone = ZoneId.of("America/Sao_Paulo");
 
     public void notifyNewEvent(String eventId, String eventTitle, String eventType, String deviceId, String timestamp,
             String additionalData) {
@@ -84,7 +86,7 @@ public class NotificationService {
 
             if (previousEvents.size() > 1) { // Mais de 1 porque o atual já está incluído
                 Evento lastCall = previousEvents.get(1); // Pega o segundo (anterior ao atual)
-                LocalDateTime now = LocalDateTime.now();
+                LocalDateTime now = LocalDateTime.now(brasiliaZone);
                 Duration duration = Duration.between(lastCall.getTimestamp(), now);
 
                 return formatDuration(duration);

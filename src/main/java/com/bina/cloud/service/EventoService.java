@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
@@ -18,10 +19,12 @@ public class EventoService {
     private final EventoRepository eventoRepository;
     private final NotificationService notificationService;
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+    private final ZoneId brasiliaZone = ZoneId.of("America/Sao_Paulo");
 
     @Transactional
     public Evento criarEvento(Evento evento) {
-        evento.setTimestamp(LocalDateTime.now());
+        // Usar fuso horário de Brasília
+        evento.setTimestamp(LocalDateTime.now(brasiliaZone));
 
         // Extrair número de telefone do additionalData e salvar no campo phoneNumber
         String phoneNumber = extractPhoneNumber(evento.getAdditionalData());
