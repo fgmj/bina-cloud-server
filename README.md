@@ -67,6 +67,16 @@ curl -X POST http://localhost:8080/api/eventos \
     "eventType": "TEST",
     "additionalData": "{\"numero\":\"11999999999\",\"data\":\"15/03/2025 17:47:06\"}"
   }'
+
+
+  curl -X POST http://localhost:8080/api/eventos \
+  -H "Content-Type: application/json" \
+  -d '{
+    "description": "Chamada recebida",
+    "deviceId": "052ad7f7b6ee816b",
+    "eventType": "CALL_RECEIVED",
+    "additionalData": "{\"numero\":\"061981122752\",\"data\":\"24/06/2025 19:59:59\",\"receivingNumber\":\"\"}"
+  }'
 ```
 
 ### GET /api/eventos

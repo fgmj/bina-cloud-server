@@ -9,6 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.time.Duration;
 import java.util.List;
 
@@ -21,10 +23,14 @@ public class NotificationService {
     private final EventoRepository eventoRepository;
     private final ZoneId brasiliaZone = ZoneId.of("America/Sao_Paulo");
     private final ZoneId utcZone = ZoneId.of("UTC");
+    private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
     public void notifyNewEvent(String eventId, String eventTitle, String eventType, String deviceId, String timestamp,
             String additionalData) {
         log.info("Processando novo evento: {} - {}", eventType, eventTitle);
+
+        // Converter timestamp para Brasília
+        String brasiliaTimestamp = convertToBrasiliaTime(timestamp);
 
         // Extrair o número de telefone do additionalData
         String phoneNumber = extractPhoneNumber(additionalData);
@@ -42,10 +48,25 @@ public class NotificationService {
         }
 
         EventNotification notification = new EventNotification(
-                eventId, eventTitle, eventType, deviceId, timestamp, additionalData, url, timeSinceLastCall);
+                eventId, eventTitle, eventType, deviceId, brasiliaTimestamp, additionalData, url, timeSinceLastCall,
+                phoneNumber);
 
         messagingTemplate.convertAndSend("/topic/events", notification);
         log.info("Notificação enviada via WebSocket para evento ID: {}", eventId);
+    }
+
+    private String convertToBrasiliaTime(String timestamp) {
+        try {
+            // Assumir que o timestamp vem em UTC
+            LocalDateTime utcTime = LocalDateTime.parse(timestamp, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            ZonedDateTime utcZoned = utcTime.atZone(utcZone);
+            ZonedDateTime brasiliaZoned = utcZoned.withZoneSameInstant(brasiliaZone);
+
+            return brasiliaZoned.format(formatter);
+        } catch (Exception e) {
+            log.error("Erro ao converter timestamp para Brasília: {}", timestamp, e);
+            return timestamp; // Retornar original se não conseguir converter
+        }
     }
 
     private String extractPhoneNumber(String additionalData) {
@@ -126,6 +147,7 @@ public class NotificationService {
             String timestamp,
             String additionalData,
             String url,
-            String timeSinceLastCall) {
+            String timeSinceLastCall,
+            String phoneNumber) {
     }
 }

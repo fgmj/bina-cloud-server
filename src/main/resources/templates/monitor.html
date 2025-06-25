@@ -35,12 +35,15 @@
             margin: 0;
             padding: 0;
             color: #334155;
+            display: flex;
+            flex-direction: column;
         }
 
         .main-container {
             max-width: 1000px;
             margin: 0 auto;
             padding: 20px;
+            flex: 1;
         }
 
         /* Navbar */
@@ -512,7 +515,14 @@
                         <p>Nenhum evento encontrado</p>
                     </div>
                     <div th:each="evento : ${eventos}" class="event-item historical">
-                        <div class="event-title" th:text="${evento.description}">Descrição</div>
+                        <div class="event-title">
+                            <span th:switch="${evento.eventType}">
+                                <span th:case="'CALL_RECEIVED'">Chamada recebida</span>
+                                <span th:case="'CALL_MISSED'">Chamada perdida</span>
+                                <span th:case="'CALL_ANSWERED'">Chamada atendida</span>
+                                <span th:case="*">Evento</span>
+                            </span>
+                        </div>
                         <div class="event-meta">
                             <span class="event-type" th:text="${evento.eventType}">Tipo</span>
                             <span class="event-time">
@@ -523,11 +533,9 @@
                         </div>
                         <div class="event-details">
                             <strong>Dispositivo:</strong> <span th:text="${evento.deviceId}">N/A</span>
-                            <div th:if="${evento.additionalData}" class="mt-2">
-                                <strong>Dados:</strong> <span th:text="${evento.additionalData}">N/A</span>
-                            </div>
                             <div th:if="${evento.phoneNumber}" class="mt-2">
-                                <strong>Número:</strong> <span th:text="${evento.phoneNumber}">N/A</span>
+                                <strong>Número:</strong> <span
+                                    th:text="${#strings.replace(#strings.replace(#strings.replace(evento.phoneNumber, '^(\d{2})(\d{5})(\d{4})$', '($1) $2-$3'), '^(\d{2})(\d{4})(\d{4})$', '($1) $2-$3'), '^(\d{2})(\d{8,9})$', '($1) $2')}">N/A</span>
                                 <button class="portal-button ms-2" th:data-phone="${evento.phoneNumber}">
                                     <i class="bi bi-external-link"></i> Abrir Portal
                                 </button>
@@ -675,9 +683,36 @@
             }
         }
 
+        function formatTimestamp(timestamp) {
+            if (!timestamp) return 'N/A';
+
+            // O backend já envia o timestamp formatado em Brasília
+            return timestamp;
+        }
+
         function createEventElement(event, isRealtime = false) {
             const element = document.createElement('div');
             element.className = `event-item ${isRealtime ? 'realtime' : 'historical'}`;
+
+            // Traduzir status para português
+            function translateStatus(type) {
+                switch (type) {
+                    case 'CALL_RECEIVED': return 'Chamada recebida';
+                    case 'CALL_MISSED': return 'Chamada perdida';
+                    case 'CALL_ANSWERED': return 'Chamada atendida';
+                    default: return 'Evento';
+                }
+            }
+
+            // Formatar número
+            function formatPhoneNumber(num) {
+                if (!num) return '';
+                num = num.replace(/\D/g, '');
+                if (num.length === 11) return `(${num.slice(0, 2)}) ${num.slice(2, 7)}-${num.slice(7)}`;
+                if (num.length === 10) return `(${num.slice(0, 2)}) ${num.slice(2, 6)}-${num.slice(6)}`;
+                if (num.length > 2) return `(${num.slice(0, 2)}) ${num.slice(2)}`;
+                return num;
+            }
 
             // Determine event type class
             const eventType = (event.eventType || '').toLowerCase();
@@ -700,19 +735,18 @@
             const portalUrl = phoneNumber ? `https://portal.gasdelivery.com.br/secure/client/?primary_phone=${phoneNumber}` : '';
 
             element.innerHTML = `
-                <div class="event-title">${event.eventTitle || 'Sem título'}</div>
+                <div class="event-title">${translateStatus(event.eventType)}</div>
                 <div class="event-meta">
                     <span class="event-type ${typeClass}">${event.eventType || 'N/A'}</span>
                     <span class="event-time">
                         <i class="bi bi-clock"></i>
-                        ${event.timestamp || 'N/A'}
+                        ${formatTimestamp(event.timestamp)}
                         <small class="text-muted">(Brasília)</small>
                     </span>
                 </div>
                 <div class="event-details">
                     <strong>Dispositivo:</strong> ${event.deviceId || 'N/A'}
-                    ${event.additionalData ? `<div class="mt-2"><strong>Dados:</strong> ${event.additionalData}</div>` : ''}
-                    ${phoneNumber ? `<div class="mt-2"><strong>Número:</strong> ${phoneNumber}</div>` : ''}
+                    ${phoneNumber ? `<div class="mt-2"><strong>Número:</strong> ${formatPhoneNumber(phoneNumber)}</div>` : ''}
                     ${event.timeSinceLastCall ? `
                         <div class="time-since-last-call">
                             <div class="label">Tempo desde última ligação</div>
@@ -865,9 +899,37 @@
                 stompClient.disconnect();
             }
         });
+
+        // Load version on page load
+        async function loadVersion() {
+            try {
+                const response = await fetch('/api/version');
+                const data = await response.json();
+                document.getElementById('appVersion').textContent = data.version;
+            } catch (error) {
+                console.error('Erro ao carregar versão:', error);
+                document.getElementById('appVersion').textContent = '1.0.1';
+            }
+        }
+
+        // Load version when page loads
+        document.addEventListener('DOMContentLoaded', function () {
+            loadVersion();
+        });
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Footer -->
+    <footer class="footer mt-auto py-3"
+        style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border-top: 1px solid rgba(255, 255, 255, 0.2);">
+        <div class="container text-center">
+            <small class="text-white-50">
+                Bina Cloud Server v<span id="appVersion">1.0.1</span> |
+                <i class="bi bi-heart-fill text-danger"></i> Powered by Spring Boot
+            </small>
+        </div>
+    </footer>
 </body>
 
 </html>
