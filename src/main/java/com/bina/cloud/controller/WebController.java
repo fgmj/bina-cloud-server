@@ -17,16 +17,17 @@ public class WebController {
 
     @GetMapping("/eventos")
     public String eventos(Model model) {
-        model.addAttribute("eventos", 
-            eventoRepository.findAll(
-                PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "timestamp"))
-            ).getContent()
-        );
+        model.addAttribute("eventos",
+                eventoRepository.findAll(
+                        PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "timestamp"))).getContent());
         return "eventos";
     }
 
     @GetMapping("/monitor")
-    public String monitor() {
+    public String monitor(Model model) {
+        model.addAttribute("eventos",
+                eventoRepository.findAll(
+                        PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "timestamp"))).getContent());
         return "monitor";
     }
-} 
+}
