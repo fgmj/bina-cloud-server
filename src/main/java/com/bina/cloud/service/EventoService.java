@@ -53,6 +53,10 @@ public class EventoService {
         return eventoRepository.findAll();
     }
 
+    public List<Evento> getUltimosEventos(int limit) {
+        return eventoRepository.findTopNByOrderByTimestampDesc(limit);
+    }
+
     public Optional<Evento> buscarPorId(Long id) {
         return eventoRepository.findById(id);
     }

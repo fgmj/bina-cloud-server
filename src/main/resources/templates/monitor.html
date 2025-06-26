@@ -362,6 +362,23 @@
             background: var(--danger-color);
         }
 
+        #reconnectButton {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+            animation: slideInUp 0.3s ease-out;
+        }
+
+        #reconnectButton:hover {
+            background: rgba(255, 255, 255, 1);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-lg);
+        }
+
         /* Notifications */
         .notification {
             position: fixed;
@@ -587,6 +604,10 @@
             <div class="status-dot"></div>
             <span>Conectando...</span>
         </div>
+        <button id="reconnectButton" class="btn btn-sm btn-outline-light" onclick="manualReconnect()"
+            style="display: none;">
+            <i class="bi bi-arrow-clockwise"></i> Reconectar
+        </button>
     </div>
 
     <!-- Notification -->
@@ -597,6 +618,14 @@
         const maxEvents = 50;
         let stompClient = null;
         let historicalEventsCount = 0;
+        let reconnectAttempts = 0;
+        let maxReconnectAttempts = 10;
+        let reconnectTimeout = null;
+        let isConnecting = false;
+        let heartbeatInterval = null;
+        let connectionCheckInterval = null;
+        let lastHeartbeat = Date.now();
+        let isReconnecting = false;
 
         // Initialize WebSocket connection
         function initializeWebSocket() {
@@ -610,10 +639,33 @@
         }
 
         function connect() {
+            if (isConnecting || isReconnecting) {
+                console.log('Já tentando conectar, ignorando nova tentativa');
+                return;
+            }
+
+            isConnecting = true;
+            isReconnecting = false;
+            console.log(`Tentativa de conexão ${reconnectAttempts + 1}/${maxReconnectAttempts}`);
+            updateConnectionStatus(false, `Tentativa ${reconnectAttempts + 1}`);
+
+            const socket = new SockJS('/ws');
+            stompClient = Stomp.over(socket);
+            stompClient.debug = null;
+
             stompClient.connect({},
                 function (frame) {
                     console.log('Connected to WebSocket');
+                    isConnecting = false;
+                    isReconnecting = false;
+                    reconnectAttempts = 0; // Reset attempts on successful connection
                     updateConnectionStatus(true);
+
+                    // Start heartbeat
+                    startHeartbeat();
+
+                    // Start connection monitoring
+                    startConnectionMonitoring();
 
                     stompClient.subscribe('/topic/events', function (message) {
                         try {
@@ -623,28 +675,163 @@
                             console.error('Error processing message:', error);
                         }
                     });
+
+                    // Subscribe to heartbeat responses
+                    stompClient.subscribe('/topic/heartbeat', function (message) {
+                        try {
+                            const response = JSON.parse(message.body);
+                            lastHeartbeat = Date.now();
+                            console.log('Heartbeat response received:', response);
+                        } catch (error) {
+                            console.error('Error processing heartbeat response:', error);
+                        }
+                    });
                 },
                 function (error) {
                     console.error('WebSocket connection error:', error);
+                    isConnecting = false;
                     updateConnectionStatus(false);
-                    setTimeout(connect, 5000);
+
+                    reconnectAttempts++;
+
+                    if (reconnectAttempts < maxReconnectAttempts) {
+                        // Exponential backoff: 1s, 2s, 4s, 8s, 16s, 30s, 30s...
+                        const delay = Math.min(Math.pow(2, reconnectAttempts - 1) * 1000, 30000);
+                        console.log(`Tentando reconectar em ${delay / 1000} segundos...`);
+
+                        reconnectTimeout = setTimeout(() => {
+                            connect();
+                        }, delay);
+                    } else {
+                        console.error('Máximo de tentativas de reconexão atingido');
+                        updateConnectionStatus(false, 'Falha na conexão');
+                        showNotification('Conexão perdida - Recarregue a página', 'error');
+                    }
                 }
             );
         }
 
-        function updateConnectionStatus(connected) {
+        function startHeartbeat() {
+            // Clear existing heartbeat
+            if (heartbeatInterval) {
+                clearInterval(heartbeatInterval);
+            }
+
+            // Send heartbeat every 30 seconds
+            heartbeatInterval = setInterval(() => {
+                if (stompClient && stompClient.connected) {
+                    try {
+                        stompClient.send('/app/heartbeat', {}, JSON.stringify({ timestamp: Date.now() }));
+                        lastHeartbeat = Date.now();
+                        console.log('Heartbeat enviado');
+                    } catch (error) {
+                        console.error('Erro ao enviar heartbeat:', error);
+                        handleConnectionLost();
+                    }
+                }
+            }, 30000);
+        }
+
+        function startConnectionMonitoring() {
+            // Clear existing monitoring
+            if (connectionCheckInterval) {
+                clearInterval(connectionCheckInterval);
+            }
+
+            // Check connection every 15 seconds (less aggressive)
+            connectionCheckInterval = setInterval(() => {
+                if (stompClient && !isConnecting && !isReconnecting) {
+                    // Check if connection is still alive
+                    if (!stompClient.connected) {
+                        console.log('Conexão perdida detectada pelo monitor');
+                        handleConnectionLost();
+                    } else {
+                        // Check if we received any data recently (within 90 seconds - more tolerant)
+                        const timeSinceLastHeartbeat = Date.now() - lastHeartbeat;
+                        if (timeSinceLastHeartbeat > 90000) {
+                            console.log('Timeout detectado - sem resposta do servidor por 90s');
+                            handleConnectionLost();
+                        }
+                    }
+                }
+            }, 15000);
+        }
+
+        function handleConnectionLost() {
+            if (isReconnecting) {
+                console.log('Reconexão já em andamento, ignorando');
+                return;
+            }
+
+            console.log('Conexão perdida - iniciando reconexão');
+            isReconnecting = true;
+
+            // Stop monitoring
+            stopMonitoring();
+
+            // Update status
+            updateConnectionStatus(false, 'Conexão perdida - Reconectando...');
+
+            // Reset connection state
+            isConnecting = false;
+
+            // Start reconnection with delay to avoid immediate retry
+            setTimeout(() => {
+                reconnectAttempts = 0;
+                connect();
+            }, 1000);
+        }
+
+        function stopMonitoring() {
+            if (heartbeatInterval) {
+                clearInterval(heartbeatInterval);
+                heartbeatInterval = null;
+            }
+
+            if (connectionCheckInterval) {
+                clearInterval(connectionCheckInterval);
+                connectionCheckInterval = null;
+            }
+        }
+
+        function disconnect() {
+            // Stop monitoring
+            stopMonitoring();
+
+            if (reconnectTimeout) {
+                clearTimeout(reconnectTimeout);
+                reconnectTimeout = null;
+            }
+
+            if (stompClient && stompClient.connected) {
+                stompClient.disconnect();
+            }
+
+            isConnecting = false;
+            isReconnecting = false;
+            reconnectAttempts = 0;
+        }
+
+        function updateConnectionStatus(connected, customMessage = null) {
             const statusElement = document.getElementById('connectionStatus');
             const statusDot = statusElement.querySelector('.status-dot');
             const statusText = statusElement.querySelector('span');
+            const reconnectButton = document.getElementById('reconnectButton');
 
             if (connected) {
                 statusElement.className = 'connection-status connected';
                 statusDot.className = 'status-dot connected';
                 statusText.textContent = 'Conectado';
+                reconnectButton.style.display = 'none';
             } else {
                 statusElement.className = 'connection-status disconnected';
                 statusDot.className = 'status-dot disconnected';
-                statusText.textContent = 'Desconectado - Reconectando...';
+                statusText.textContent = customMessage || 'Desconectado - Reconectando...';
+
+                // Show reconnect button after max attempts
+                if (reconnectAttempts >= maxReconnectAttempts) {
+                    reconnectButton.style.display = 'block';
+                }
             }
         }
 
@@ -812,9 +999,7 @@
 
         // Cleanup on page unload
         window.addEventListener('beforeunload', function () {
-            if (stompClient) {
-                stompClient.disconnect();
-            }
+            disconnect();
         });
 
         // Load version on page load
@@ -832,6 +1017,26 @@
         // Load version when page loads
         document.addEventListener('DOMContentLoaded', function () {
             loadVersion();
+        });
+
+        function manualReconnect() {
+            console.log('Reconectando manualmente');
+            disconnect(); // Reset state
+            reconnectAttempts = 0;
+            isReconnecting = false;
+            connect();
+        }
+
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', function () {
+            if (!document.hidden) {
+                // Page became visible - check connection
+                console.log('Página tornou-se visível - verificando conexão');
+                if (stompClient && !stompClient.connected && !isConnecting && !isReconnecting) {
+                    console.log('Conexão perdida detectada ao voltar à página - reconectando');
+                    handleConnectionLost();
+                }
+            }
         });
     </script>
 

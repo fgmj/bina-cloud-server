@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Reconexão WebSocket</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+
+        .connected {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .connecting {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Teste de Reconexão WebSocket</h1>
+
+    <div id="status" class="status disconnected">Desconectado</div>
+
+    <div>
+        <button onclick="connect()">Conectar</button>
+        <button onclick="disconnect()">Desconectar</button>
+        <button onclick="clearLog()">Limpar Log</button>
+    </div>
+
+    <div class="log" id="log"></div>
+
+    <script>
+        let stompClient = null;
+        let reconnectAttempts = 0;
+        let maxReconnectAttempts = 10;
+        let reconnectTimeout = null;
+        let isConnecting = false;
+        let heartbeatInterval = null;
+        let connectionCheckInterval = null;
+        let lastHeartbeat = Date.now();
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function updateStatus(connected, message = '') {
+            const statusDiv = document.getElementById('status');
+            if (connected) {
+                statusDiv.className = 'status connected';
+                statusDiv.textContent = 'Conectado' + (message ? ` - ${message}` : '');
+            } else if (isConnecting) {
+                statusDiv.className = 'status connecting';
+                statusDiv.textContent = 'Conectando...' + (message ? ` - ${message}` : '');
+            } else {
+                statusDiv.className = 'status disconnected';
+                statusDiv.textContent = 'Desconectado' + (message ? ` - ${message}` : '');
+            }
+        }
+
+        function connect() {
+            if (isConnecting) {
+                log('Já tentando conectar, ignorando nova tentativa');
+                return;
+            }
+
+            isConnecting = true;
+            log(`Tentativa de conexão ${reconnectAttempts + 1}/${maxReconnectAttempts}`);
+            updateStatus(false, `Tentativa ${reconnectAttempts + 1}`);
+
+            const socket = new SockJS('/ws');
+            stompClient = Stomp.over(socket);
+            stompClient.debug = null;
+
+            stompClient.connect({},
+                function (frame) {
+                    log('Connected to WebSocket');
+                    isConnecting = false;
+                    reconnectAttempts = 0;
+                    updateStatus(true);
+
+                    startHeartbeat();
+                    startConnectionMonitoring();
+
+                    stompClient.subscribe('/topic/events', function (message) {
+                        log('Evento recebido: ' + message.body);
+                    });
+
+                    stompClient.subscribe('/topic/heartbeat', function (message) {
+                        const response = JSON.parse(message.body);
+                        lastHeartbeat = Date.now();
+                        log('Heartbeat response: ' + JSON.stringify(response));
+                    });
+                },
+                function (error) {
+                    log('WebSocket connection error: ' + error);
+                    isConnecting = false;
+                    updateStatus(false);
+
+                    reconnectAttempts++;
+
+                    if (reconnectAttempts < maxReconnectAttempts) {
+                        const delay = Math.min(Math.pow(2, reconnectAttempts - 1) * 1000, 30000);
+                        log(`Tentando reconectar em ${delay / 1000} segundos...`);
+
+                        reconnectTimeout = setTimeout(() => {
+                            connect();
+                        }, delay);
+                    } else {
+                        log('Máximo de tentativas de reconexão atingido');
+                        updateStatus(false, 'Falha na conexão');
+                    }
+                }
+            );
+        }
+
+        function startHeartbeat() {
+            if (heartbeatInterval) {
+                clearInterval(heartbeatInterval);
+            }
+
+            heartbeatInterval = setInterval(() => {
+                if (stompClient && stompClient.connected) {
+                    try {
+                        stompClient.send('/app/heartbeat', {}, JSON.stringify({ timestamp: Date.now() }));
+                        lastHeartbeat = Date.now();
+                        log('Heartbeat enviado');
+                    } catch (error) {
+                        log('Erro ao enviar heartbeat: ' + error);
+                        handleConnectionLost();
+                    }
+                }
+            }, 30000);
+        }
+
+        function startConnectionMonitoring() {
+            if (connectionCheckInterval) {
+                clearInterval(connectionCheckInterval);
+            }
+
+            connectionCheckInterval = setInterval(() => {
+                if (stompClient) {
+                    if (!stompClient.connected) {
+                        log('Conexão perdida detectada');
+                        handleConnectionLost();
+                    } else {
+                        const timeSinceLastHeartbeat = Date.now() - lastHeartbeat;
+                        if (timeSinceLastHeartbeat > 60000) {
+                            log('Timeout detectado - sem resposta do servidor');
+                            handleConnectionLost();
+                        }
+                    }
+                }
+            }, 10000);
+        }
+
+        function handleConnectionLost() {
+            log('Conexão perdida - iniciando reconexão');
+            stopMonitoring();
+            updateStatus(false, 'Conexão perdida - Reconectando...');
+            reconnectAttempts = 0;
+            connect();
+        }
+
+        function stopMonitoring() {
+            if (heartbeatInterval) {
+                clearInterval(heartbeatInterval);
+                heartbeatInterval = null;
+            }
+
+            if (connectionCheckInterval) {
+                clearInterval(connectionCheckInterval);
+                connectionCheckInterval = null;
+            }
+        }
+
+        function disconnect() {
+            stopMonitoring();
+
+            if (reconnectTimeout) {
+                clearTimeout(reconnectTimeout);
+                reconnectTimeout = null;
+            }
+
+            if (stompClient && stompClient.connected) {
+                stompClient.disconnect();
+            }
+
+            isConnecting = false;
+            reconnectAttempts = 0;
+            updateStatus(false);
+            log('Desconectado manualmente');
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', function () {
+            if (!document.hidden) {
+                log('Página tornou-se visível - verificando conexão');
+                if (stompClient && !stompClient.connected && !isConnecting) {
+                    log('Conexão perdida detectada ao voltar à página - reconectando');
+                    handleConnectionLost();
+                }
+            }
+        });
+
+        // Auto-connect on page load
+        window.onload = function () {
+            log('Página carregada - iniciando conexão automática');
+            connect();
+        };
+    </script>
+</body>
+
+</html>
