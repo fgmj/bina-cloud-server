@@ -57,7 +57,13 @@ public class NotificationService {
 
     private String convertToBrasiliaTime(String timestamp) {
         try {
-            // Assumir que o timestamp vem em UTC
+            // Verificar se o timestamp já está no formato brasileiro
+            if (timestamp.matches("\\d{2}/\\d{2}/\\d{4} \\d{2}:\\d{2}:\\d{2}")) {
+                // Já está no formato correto, retornar como está
+                return timestamp;
+            }
+
+            // Se não estiver no formato brasileiro, tentar converter de ISO
             LocalDateTime utcTime = LocalDateTime.parse(timestamp, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
             ZonedDateTime utcZoned = utcTime.atZone(utcZone);
             ZonedDateTime brasiliaZoned = utcZoned.withZoneSameInstant(brasiliaZone);
