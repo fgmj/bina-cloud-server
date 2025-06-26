@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   app:
     build:
@@ -33,14 +35,15 @@ services:
       - app-network
 
   nginx:
-    build: 
+    build:
       context: ./nginx
       dockerfile: Dockerfile
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ssl-certs:/etc/nginx/ssl
+      - ssl-certs:/etc/letsencrypt
+      - certbot-web:/var/www/certbot
     environment:
       - NGINX_HOST=${NGINX_HOST:-localhost}
       - ENVIRONMENT=${ENVIRONMENT:-dev}
@@ -56,11 +59,21 @@ services:
     networks:
       - app-network
 
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - ssl-certs:/etc/letsencrypt
+      - certbot-web:/var/www/certbot
+    entrypoint: >
+      sh -c "trap exit TERM; while :; do sleep 12h & wait $${!}; certbot renew --webroot -w /var/www/certbot --quiet; done"
+    networks:
+      - app-network
 
 volumes:
-  h2-data: 
+  h2-data:
   ssl-certs:
+  certbot-web:
 
 networks:
   app-network:
-    driver: bridge 
+    driver: bridge

@@ -1,25 +1,30 @@
 FROM nginx:alpine
 
-# Instalar dependências
+# Instalar dependências para utilitários e fuso horário
 RUN apk add --no-cache \
     curl \
-    gettext \
-    tzdata
+    tzdata \
+    openssl \
+    bash
 
-# Criar diretório de configuração
-RUN mkdir -p /etc/nginx/conf.d
-
-# Configurar permissões
-RUN chown -R nginx:nginx /etc/nginx/conf.d
-
-# Copiar arquivos de configuração
-COPY nginx.conf.template /etc/nginx/nginx.conf
-
-# Configurar variável de ambiente padrão
+# Definir timezone
 ENV TZ=America/Sao_Paulo
 
-# Expor a porta 80
-EXPOSE 80
+# Criar diretórios necessários
+RUN mkdir -p /etc/nginx/conf.d \
+    /var/www/certbot \
+    /etc/letsencrypt/live \
+    /etc/letsencrypt/archive \
+    /etc/letsencrypt/renewal
 
-# Comando para iniciar o Nginx
-CMD ["nginx", "-g", "daemon off;"] 
+# Ajustar permissões
+RUN chown -R nginx:nginx /etc/nginx /var/www/certbot /etc/letsencrypt
+
+# Copiar nginx.conf diretamente
+COPY nginx.conf /etc/nginx/nginx.conf
+
+# Expor portas HTTP e HTTPS
+EXPOSE 80 443
+
+# Comando padrão do container
+CMD ["nginx", "-g", "daemon off;"]
