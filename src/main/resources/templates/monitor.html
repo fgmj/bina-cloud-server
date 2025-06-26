@@ -547,10 +547,7 @@
                             <!-- Número de telefone formatado -->
                             <div th:if="${evento.phoneNumber}" class="mt-2">
                                 <strong>Número:</strong>
-                                <span
-                                    th:with="phone=${evento.phoneNumber}, 
-                                              formatted=${#strings.replace(#strings.replace(#strings.replace(phone, '^(\d{2})(\d{5})(\d{4})$', '($1) $2-$3'), '^(\d{2})(\d{4})(\d{4})$', '($1) $2-$3'), '^(\d{2})(\d{8,9})$', '($1) $2')}"
-                                    th:text="${formatted}">N/A</span>
+                                <span th:text="${evento.phoneNumber}" class="phone-number">N/A</span>
                             </div>
 
                             <!-- Botão do portal para eventos históricos -->
@@ -783,11 +780,24 @@
             eventCount = historicalEventsCount;
             updateEventCount();
 
+            // Format phone numbers in historical events
+            formatHistoricalPhoneNumbers();
+
             // Initialize portal buttons for historical events
             initializePortalButtons();
 
             initializeWebSocket();
         });
+
+        function formatHistoricalPhoneNumbers() {
+            // Format all phone numbers in historical events
+            document.querySelectorAll('.phone-number').forEach(span => {
+                const phoneNumber = span.textContent;
+                if (phoneNumber && phoneNumber !== 'N/A') {
+                    span.textContent = EventUtils.formatPhoneNumber(phoneNumber);
+                }
+            });
+        }
 
         function initializePortalButtons() {
             // Add event listeners to existing portal buttons
