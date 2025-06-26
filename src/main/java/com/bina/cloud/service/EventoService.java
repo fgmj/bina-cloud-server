@@ -3,6 +3,8 @@ package com.bina.cloud.service;
 import com.bina.cloud.model.Evento;
 import com.bina.cloud.repository.EventoRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,7 +56,8 @@ public class EventoService {
     }
 
     public List<Evento> getUltimosEventos(int limit) {
-        return eventoRepository.findTopNByOrderByTimestampDesc(limit);
+        PageRequest pageRequest = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "timestamp"));
+        return eventoRepository.findTopNByOrderByTimestampDesc(pageRequest);
     }
 
     public Optional<Evento> buscarPorId(Long id) {
