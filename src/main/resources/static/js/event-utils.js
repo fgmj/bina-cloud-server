@@ -99,7 +99,6 @@ const EventUtils = {
                 <span class="event-time">
                     <i class="bi bi-clock"></i>
                     ${this.formatTimestamp(event.timestamp)}
-                    <small class="text-muted">(Brasília)</small>
                 </span>
             </div>
             <div class="event-details">

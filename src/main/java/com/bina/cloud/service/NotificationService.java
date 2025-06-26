@@ -2,15 +2,12 @@ package com.bina.cloud.service;
 
 import com.bina.cloud.model.Evento;
 import com.bina.cloud.repository.EventoRepository;
+import com.bina.cloud.util.TimezoneUtil;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.time.Duration;
 import java.util.List;
 
@@ -21,16 +18,13 @@ public class NotificationService {
 
     private final SimpMessagingTemplate messagingTemplate;
     private final EventoRepository eventoRepository;
-    private final ZoneId brasiliaZone = ZoneId.of("America/Sao_Paulo");
-    private final ZoneId utcZone = ZoneId.of("UTC");
-    private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
     public void notifyNewEvent(String eventId, String eventTitle, String eventType, String deviceId, String timestamp,
             String additionalData) {
         log.info("Processando novo evento: {} - {}", eventType, eventTitle);
 
         // Converter timestamp para Brasília
-        String brasiliaTimestamp = convertToBrasiliaTime(timestamp);
+        String brasiliaTimestamp = TimezoneUtil.convertTimestampToBrasilia(timestamp);
 
         // Extrair o número de telefone do additionalData
         String phoneNumber = extractPhoneNumber(additionalData);
@@ -53,26 +47,6 @@ public class NotificationService {
 
         messagingTemplate.convertAndSend("/topic/events", notification);
         log.info("Notificação enviada via WebSocket para evento ID: {}", eventId);
-    }
-
-    private String convertToBrasiliaTime(String timestamp) {
-        try {
-            // Verificar se o timestamp já está no formato brasileiro
-            if (timestamp.matches("\\d{2}/\\d{2}/\\d{4} \\d{2}:\\d{2}:\\d{2}")) {
-                // Já está no formato correto, retornar como está
-                return timestamp;
-            }
-
-            // Se não estiver no formato brasileiro, tentar converter de ISO
-            LocalDateTime utcTime = LocalDateTime.parse(timestamp, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-            ZonedDateTime utcZoned = utcTime.atZone(utcZone);
-            ZonedDateTime brasiliaZoned = utcZoned.withZoneSameInstant(brasiliaZone);
-
-            return brasiliaZoned.format(formatter);
-        } catch (Exception e) {
-            log.error("Erro ao converter timestamp para Brasília: {}", timestamp, e);
-            return timestamp; // Retornar original se não conseguir converter
-        }
     }
 
     private String extractPhoneNumber(String additionalData) {
@@ -114,7 +88,7 @@ public class NotificationService {
 
             if (previousEvents.size() > 1) { // Mais de 1 porque o atual já está incluído
                 Evento lastCall = previousEvents.get(1); // Pega o segundo (anterior ao atual)
-                LocalDateTime now = LocalDateTime.now(utcZone);
+                var now = TimezoneUtil.getCurrentUtcTime();
                 Duration duration = Duration.between(lastCall.getTimestamp(), now);
 
                 return formatDuration(duration);
