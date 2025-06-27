@@ -125,90 +125,20 @@ init_certificates() {
     
     # Criar volumes se não existirem
     docker volume create ssl-certs 2>/dev/null || true
-    docker volume create certbot-web 2>/dev/null || true
-    
-    # Criar nginx temporário apenas para validação
-    log "🚀 Criando nginx temporário para validação..."
-    
-    # Criar docker-compose temporário apenas com nginx
-    cat > docker-compose.temp.yml << EOF
-version: '3.8'
-services:
-  nginx-temp:
-    build:
-      context: ./nginx
-      dockerfile: Dockerfile
-    ports:
-      - "80:80"
-    volumes:
-      - ssl-certs:/etc/letsencrypt:ro
-      - certbot-web:/var/www/certbot
-      - ./nginx/nginx-cert-validation.conf:/etc/nginx/nginx.conf:ro
-    environment:
-      - NGINX_HOST=${NGINX_HOST:-bina.fernandojunior.com.br}
-    networks:
-      - temp-network
-
-volumes:
-  ssl-certs:
-  certbot-web:
-
-networks:
-  temp-network:
-    driver: bridge
-EOF
-    
-    # Iniciar nginx temporário
-    docker-compose -f docker-compose.temp.yml up -d nginx-temp
-    
-    # Aguardar nginx estar pronto
-    log "⏳ Aguardando nginx estar pronto..."
-    sleep 15
-    
-    # Testar se nginx está respondendo
-    if ! curl -s -f http://localhost/.well-known/acme-challenge/test > /dev/null 2>&1; then
-        log "⚠️ Nginx não está respondendo corretamente, mas continuando..."
-    fi
-    
-    # Testar webroot especificamente
-    log "🔍 Testando webroot..."
-    mkdir -p /tmp/certbot-test
-    echo "test-content" > /tmp/certbot-test/test.txt
-    
-    # Copiar arquivo para o volume
-    docker run --rm \
-        -v certbot-web:/var/www/certbot \
-        -v /tmp/certbot-test:/tmp/test \
-        alpine sh -c "cp /tmp/test/test.txt /var/www/certbot/ && chmod 644 /var/www/certbot/test.txt"
-    
-    if curl -s http://localhost/.well-known/acme-challenge/test.txt | grep -q "test-content"; then
-        log "✅ Webroot funcionando"
-    else
-        log "❌ Webroot não está funcionando"
-        log "💡 Verificando logs do nginx..."
-        docker-compose -f docker-compose.temp.yml logs nginx-temp
-        log "💡 Tentando continuar mesmo assim..."
-    fi
-    
+    docker volume create certbot-web 2>/dev/null || true   
+        
     # Emitir certificado
     log "📜 Emitindo certificado Let's Encrypt..."
-    docker run --rm \
-        -v ssl-certs:/etc/letsencrypt \
-        -v certbot-web:/var/www/certbot \
-        certbot/certbot certonly \
-        --webroot \
-        --webroot-path=/var/www/certbot \
-        --email "$EMAIL" \
-        --agree-tos \
-        --no-eff-email \
-        --non-interactive \
-        -d "$DOMAIN"
+    docker run --rm -p 80:80 \
+     -v ssl-certs:/etc/letsencrypt \
+     -v certbot-web:/var/www/certbot \
+     certbot/certbot certonly --standalone \
+     --preferred-challenges http \
+     -d $NGINX_HOST \
+     --email $CERTBOT_EMAIL --agree-tos --no-eff-email
+
     
-    CERT_RESULT=$?
-    
-    # Parar nginx temporário
-    docker-compose -f docker-compose.temp.yml down
-    rm -f docker-compose.temp.yml
+    CERT_RESULT=$?    
     
     if [ $CERT_RESULT -eq 0 ]; then
         success "Certificado emitido com sucesso!"
