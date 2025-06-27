@@ -102,12 +102,26 @@ fi
 echo "🔍 Testando webroot..."
 mkdir -p /tmp/acme-test
 echo "test-content" > /tmp/acme-test/test.txt
-docker run --rm -v /tmp/acme-test:/var/www/certbot/test nginx:alpine cp /var/www/certbot/test/test.txt /var/www/certbot/
+
+# Copiar arquivo para o volume usando um container temporário
+docker run --rm \
+    -v certbot-web:/var/www/certbot \
+    -v /tmp/acme-test:/tmp/test \
+    alpine sh -c "cp /tmp/test/test.txt /var/www/certbot/ && chmod 644 /var/www/certbot/test.txt"
+
+# Verificar se o arquivo foi copiado
+if docker run --rm -v certbot-web:/var/www/certbot alpine ls -la /var/www/certbot/test.txt 2>/dev/null; then
+    echo "✅ Arquivo copiado para o volume"
+else
+    echo "❌ Falha ao copiar arquivo para o volume"
+fi
 
 if curl -s http://localhost/.well-known/acme-challenge/test.txt | grep -q "test-content"; then
     echo "✅ Webroot funcionando localmente"
 else
     echo "❌ Webroot não está funcionando localmente"
+    echo "   💡 Verificando logs do nginx..."
+    docker-compose -f docker-compose-acme-test.yml logs nginx-acme-test
 fi
 
 # Testar externamente

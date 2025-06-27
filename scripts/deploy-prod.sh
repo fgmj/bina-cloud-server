@@ -170,6 +170,26 @@ EOF
         log "⚠️ Nginx não está respondendo corretamente, mas continuando..."
     fi
     
+    # Testar webroot especificamente
+    log "🔍 Testando webroot..."
+    mkdir -p /tmp/certbot-test
+    echo "test-content" > /tmp/certbot-test/test.txt
+    
+    # Copiar arquivo para o volume
+    docker run --rm \
+        -v certbot-web:/var/www/certbot \
+        -v /tmp/certbot-test:/tmp/test \
+        alpine sh -c "cp /tmp/test/test.txt /var/www/certbot/ && chmod 644 /var/www/certbot/test.txt"
+    
+    if curl -s http://localhost/.well-known/acme-challenge/test.txt | grep -q "test-content"; then
+        log "✅ Webroot funcionando"
+    else
+        log "❌ Webroot não está funcionando"
+        log "💡 Verificando logs do nginx..."
+        docker-compose -f docker-compose.temp.yml logs nginx-temp
+        log "💡 Tentando continuar mesmo assim..."
+    fi
+    
     # Emitir certificado
     log "📜 Emitindo certificado Let's Encrypt..."
     docker run --rm \
