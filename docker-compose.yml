@@ -76,27 +76,21 @@ services:
       - CERTBOT_EMAIL=${CERTBOT_EMAIL:-fernando.medeiros@gmail.com}
       - DOMAIN=${NGINX_HOST:-bina.fernandojunior.com.br}
     command: >
-      sh -c "
-        echo '🔐 Iniciando serviço de renovação automática de certificados...' &&
-        trap 'echo \"🛑 Parando serviço de certificados...\"; exit 0' TERM INT &&
+      sh -c '
+        echo "🔐 Iniciando renovação automática de certificados..." &&
         while true; do
-          echo '⏰ Aguardando 12 horas para próxima verificação...' &&
           sleep 12h &&
-          echo '🔄 Verificando renovação de certificados...' &&
+          echo "🔄 Verificando renovação..." &&
           certbot renew --webroot -w /var/www/certbot --quiet --non-interactive --agree-tos --email $${CERTBOT_EMAIL} &&
-          if [ $$? -eq 0 ]; then
-            echo '✅ Certificados renovados com sucesso!' &&
-            docker exec nginx nginx -s reload 2>/dev/null || echo '⚠️ Nginx não está rodando para recarregar'
-          else
-            echo '❌ Falha na renovação dos certificados'
-          fi
+          echo "✅ Certificados renovados!" &&
+          docker exec nginx nginx -s reload 2>/dev/null || echo "⚠️ Nginx reload falhou"
         done
-      "
+      '
     depends_on:
       - nginx
     networks:
       - app-network
-    restart: unless-stopped  
+    restart: unless-stopped
 
 volumes:
   h2-data:
