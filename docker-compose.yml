@@ -103,40 +103,7 @@ services:
       - nginx
     networks:
       - app-network
-    restart: unless-stopped
-
-  # Monitor de certificados (opcional)
-  cert-monitor:
-    image: alpine:latest
-    volumes:
-      - ssl-certs:/etc/letsencrypt:ro
-      - cert-monitor-logs:/var/log
-    environment:
-      - DOMAIN=${NGINX_HOST:-bina.fernandojunior.com.br}
-    command: >
-      sh -c "
-        apk add --no-cache openssl curl &&
-        while true; do
-          echo '🔍 Verificando validade dos certificados...' &&
-          if [ -f /etc/letsencrypt/live/$${DOMAIN}/fullchain.pem ]; then
-            EXPIRY=$$(openssl x509 -enddate -noout -in /etc/letsencrypt/live/$${DOMAIN}/fullchain.pem | cut -d= -f2) &&
-            echo \"📅 Certificado expira em: $$EXPIRY\" &&
-            DAYS_LEFT=$$(($$(date -d \"$$EXPIRY\" +%s) - $$(date +%s))) &&
-            DAYS_LEFT=$$(($$DAYS_LEFT / 86400)) &&
-            echo \"⏰ Dias restantes: $$DAYS_LEFT\" &&
-            if [ $$DAYS_LEFT -lt 7 ]; then
-              echo '⚠️ ATENÇÃO: Certificado expira em menos de 7 dias!' &&
-              curl -X POST -H 'Content-Type: application/json' -d '{\"text\":\"⚠️ Certificado SSL expira em $$DAYS_LEFT dias!\"}' $${WEBHOOK_URL:-} 2>/dev/null || true
-            fi
-          else
-            echo '❌ Certificado não encontrado!'
-          fi &&
-          sleep 24h
-        done
-      "
-    networks:
-      - app-network
-    restart: unless-stopped
+    restart: unless-stopped  
 
 volumes:
   h2-data:
@@ -149,8 +116,7 @@ volumes:
     driver: local
   certbot-logs:
     driver: local
-  cert-monitor-logs:
-    driver: local
+
 
 networks:
   app-network:
