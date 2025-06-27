@@ -79,26 +79,21 @@ services:
       - ssl-certs:/etc/letsencrypt
       - certbot-web:/var/www/certbot
       - certbot-logs:/var/log/letsencrypt
-      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - CERTBOT_EMAIL=${CERTBOT_EMAIL:-fernando.medeiros@gmail.com}
       - DOMAIN=${NGINX_HOST:-bina.fernandojunior.com.br}
     command: >
       sh -c "
-        if [ ! -f /etc/letsencrypt/live/$${DOMAIN}/fullchain.pem ]; then
-          echo '🔐 Obtendo certificado inicial...' &&
-          certbot certonly --webroot -w /var/www/certbot --quiet --non-interactive --agree-tos --email $${CERTBOT_EMAIL} -d $${DOMAIN}
-        fi &&
         echo '🔐 Iniciando serviço de renovação automática de certificados...' &&
         trap 'echo \"🛑 Parando serviço de certificados...\"; exit 0' TERM INT &&
         while true; do
           echo '⏰ Aguardando 12 horas para próxima verificação...' &&
           sleep 12h &&
           echo '🔄 Verificando renovação de certificados...' &&
-          certbot renew --webroot -w /var/www/certbot --quiet --non-interactive &&
+          certbot renew --webroot -w /var/www/certbot --quiet --non-interactive --agree-tos --email $${CERTBOT_EMAIL} &&
           if [ $$? -eq 0 ]; then
             echo '✅ Certificados renovados com sucesso!' &&
-            curl -s -X POST --unix-socket /var/run/docker.sock http://localhost/containers/nginx/kill?signal=SIGHUP || echo '⚠️ Falha ao recarregar Nginx'
+            docker exec nginx nginx -s reload 2>/dev/null || echo '⚠️ Nginx não está rodando para recarregar'
           else
             echo '❌ Falha na renovação dos certificados'
           fi

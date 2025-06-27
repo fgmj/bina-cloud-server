@@ -17,10 +17,6 @@ RUN mkdir -p /etc/nginx/conf.d \
     /etc/letsencrypt/archive \
     /etc/letsencrypt/renewal
 
-# Gerar dhparam e copiar configurações SSL
-RUN openssl dhparam -out /etc/letsencrypt/ssl-dhparams.pem 2048
-COPY options-ssl-nginx.conf /etc/letsencrypt/options-ssl-nginx.conf
-
 # Ajustar permissões
 RUN chown -R nginx:nginx /etc/nginx /var/www/certbot /etc/letsencrypt
 
