@@ -15,19 +15,48 @@ docker volume create certbot-web 2>/dev/null || echo "Volume já existe"
 # Criar nginx simples
 echo "🚀 Criando nginx..."
 cat > nginx-simple.conf << 'EOF'
-events { worker_connections 1024; }
+events {
+    worker_connections 1024;
+}
+
 http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+
+    # Logs
+    access_log /var/log/nginx/access.log;
+    error_log /var/log/nginx/error.log;
+
+    # Basic settings
+    sendfile on;
+    tcp_nopush on;
+    tcp_nodelay on;
+    keepalive_timeout 65;
+    types_hash_max_size 2048;
+
     server {
-        listen 80;
-        server_name bina.fernandojunior.com.br;
+        listen 80 default_server;
+        server_name bina.fernandojunior.com.br _;
         
+        # ACME Challenge - Let's Encrypt validation
         location /.well-known/acme-challenge/ {
             root /var/www/certbot;
             try_files $uri =404;
+            access_log off;
+            log_not_found off;
         }
         
+        # Health check
+        location /health {
+            access_log off;
+            return 200 "healthy\n";
+            add_header Content-Type text/plain;
+        }
+        
+        # Default response
         location / {
-            return 200 "OK\n";
+            return 200 "Nginx OK - Webroot Test Server\n";
+            add_header Content-Type text/plain;
         }
     }
 }
@@ -39,16 +68,18 @@ docker run -d --name nginx-test \
     -p 80:80 \
     -v $(pwd)/nginx-simple.conf:/etc/nginx/nginx.conf:ro \
     -v certbot-web:/var/www/certbot \
-    nginx:alpine
+    nginx:alpine nginx -g 'daemon off;'
 
 sleep 5
 
 # Testar nginx
 echo "🔍 Testando nginx..."
-if curl -s http://localhost | grep -q "OK"; then
-    echo "✅ Nginx funcionando"
+if curl -s http://localhost | grep -q "Nginx OK"; then
+    echo "✅ Nginx funcionando com configuração personalizada"
 else
-    echo "❌ Nginx não funcionando"
+    echo "❌ Nginx não funcionando ou usando configuração padrão"
+    echo "💡 Verificando configuração..."
+    docker exec nginx-test nginx -T | head -20
     docker logs nginx-test
     docker stop nginx-test && docker rm nginx-test
     rm -f nginx-simple.conf
