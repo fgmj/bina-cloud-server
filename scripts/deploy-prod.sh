@@ -143,6 +143,7 @@ services:
     volumes:
       - ssl-certs:/etc/letsencrypt:ro
       - certbot-web:/var/www/certbot
+      - ./nginx/nginx-cert-validation.conf:/etc/nginx/nginx.conf:ro
     environment:
       - NGINX_HOST=${NGINX_HOST:-bina.fernandojunior.com.br}
     networks:
