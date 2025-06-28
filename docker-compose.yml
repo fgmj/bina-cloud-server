@@ -10,16 +10,19 @@ services:
     volumes:
       - h2-data:/app/data
     environment:
-      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-dev}
-      - JAVA_OPTS=${JAVA_OPTS:--Xmx192m -Xms96m -XX:+UseSerialGC -XX:MaxRAM=256m -Xss512k -XX:MaxMetaspaceSize=96m -XX:CompressedClassSpaceSize=32m -Xmn64m -XX:+UseG1GC -XX:+UseStringDeduplication}
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
+      # JAVA_OPTS otimizado para baixa memória
+      - JAVA_OPTS=-server -Xmx192m -Xms90m -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=70m -XX:CompressedClassSpaceSize=25m -XX:ReservedCodeCacheSize=25m -XX:+UseStringDeduplication -Djava.awt.headless=true -XX:+OptimizeStringConcat -XX:+UseCompressedOops -XX:+UseCompressedClassPointers      
+
     deploy:
       resources:
         limits:
-          memory: 512m
+          memory: 300m          # ✅ Ajustado para JAVA_OPTS
         reservations:
-          memory: 256m
+          memory: 200m          # ✅ Ajustado para JAVA_OPTS
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      # ✅ Usando wget (geralmente disponível) ou Java direto
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -52,11 +55,12 @@ services:
     deploy:
       resources:
         limits:
-          memory: 64m
+          memory: 64m           # ✅ OK para Nginx
         reservations:
-          memory: 32m
+          memory: 32m           # ✅ OK para Nginx
     depends_on:
-      - app       
+      app:
+        condition: service_healthy  # ✅ Aguarda app estar saudável
     logging:
       driver: "json-file"
       options:
@@ -75,6 +79,12 @@ services:
     environment:
       - CERTBOT_EMAIL=${CERTBOT_EMAIL:-fernando.medeiros@gmail.com}
       - DOMAIN=${NGINX_HOST:-bina.fernandojunior.com.br}
+    deploy:
+      resources:
+        limits:
+          memory: 32m           # ✅ Certbot é leve
+        reservations:
+          memory: 16m
     command: >
       sh -c '
         echo "🔐 Iniciando renovação automática de certificados..." &&

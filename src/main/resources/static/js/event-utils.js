@@ -4,6 +4,10 @@
  */
 
 const EventUtils = {
+    // Static compiled regex patterns to avoid repeated compilation
+    PHONE_JSON_PATTERN: /.*"numero":\s*"([^"]+)".*/,
+    DIGITS_ONLY_PATTERN: /[^0-9]/g,
+
     // Traduzir status para português
     translateStatus: function (type) {
         const translations = {
@@ -31,18 +35,24 @@ const EventUtils = {
 
         try {
             // Tentar extrair número usando regex para JSON
-            let phoneNumber = additionalData.replaceAll(".*\"numero\":\\s*\"([^\"]+)\".*", "$1");
+            let phoneNumber = additionalData.replace(this.PHONE_JSON_PATTERN, "$1");
 
             // Se não encontrou no formato JSON, tentar outros padrões
             if (phoneNumber === additionalData) {
                 // Tentar extrair apenas números
-                phoneNumber = additionalData.replaceAll("[^0-9]", "");
+                phoneNumber = additionalData.replace(this.DIGITS_ONLY_PATTERN, "");
             }
 
             if (phoneNumber && phoneNumber !== "N/A") {
+                // Remover zeros à esquerda (se o número começar com 0, ignorar o 0)
+                while (phoneNumber.startsWith("0")) {
+                    phoneNumber = phoneNumber.substring(1);
+                }
+
                 // Normalizar para 11 dígitos (DDD + número)
+                // Só truncar se tiver mais de 11 dígitos
                 if (phoneNumber.length > 11) {
-                    phoneNumber = phoneNumber.substring(phoneNumber.length - 11);
+                    phoneNumber = phoneNumber.substring(0, 11);
                 }
                 return phoneNumber;
             }

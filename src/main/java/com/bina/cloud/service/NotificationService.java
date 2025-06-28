@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
@@ -18,6 +19,10 @@ public class NotificationService {
 
     private final SimpMessagingTemplate messagingTemplate;
     private final EventoRepository eventoRepository;
+
+    // Static compiled regex patterns to avoid repeated compilation
+    private static final Pattern PHONE_JSON_PATTERN = Pattern.compile(".*\"numero\":\\s*\"([^\"]+)\".*");
+    private static final Pattern DIGITS_ONLY_PATTERN = Pattern.compile("[^0-9]");
 
     public void notifyNewEvent(String eventId, String eventTitle, String eventType, String deviceId, String timestamp,
             String additionalData) {
@@ -56,18 +61,19 @@ public class NotificationService {
 
         try {
             // Tentar extrair número usando regex para JSON
-            String phoneNumber = additionalData.replaceAll(".*\"numero\":\\s*\"([^\"]+)\".*", "$1");
+            String phoneNumber = PHONE_JSON_PATTERN.matcher(additionalData).replaceAll("$1");
 
             // Se não encontrou no formato JSON, tentar outros padrões
             if (phoneNumber.equals(additionalData)) {
                 // Tentar extrair apenas números
-                phoneNumber = additionalData.replaceAll("[^0-9]", "");
+                phoneNumber = DIGITS_ONLY_PATTERN.matcher(additionalData).replaceAll("");
             }
 
             if (!phoneNumber.isEmpty() && !"N/A".equals(phoneNumber)) {
-                // Normalizar para 11 dígitos (DDD + número)
+                // Normalizar para 11 dígitos (DDD + número), preservando zeros à esquerda
+                // Só truncar se tiver mais de 11 dígitos
                 if (phoneNumber.length() > 11) {
-                    phoneNumber = phoneNumber.substring(phoneNumber.length() - 11);
+                    phoneNumber = phoneNumber.substring(0, 11);
                 }
 
                 log.debug("Número extraído: {}", phoneNumber);
