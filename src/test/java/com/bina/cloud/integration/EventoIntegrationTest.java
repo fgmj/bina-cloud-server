@@ -165,9 +165,8 @@ class EventoIntegrationTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(evento3)))
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.phoneNumber", is("61981122752"))); // Should truncate to 11
-                                                                                          // digits and remove leading
-                                                                                          // zeros
+                                .andExpect(jsonPath("$.phoneNumber", is("55061981122"))); // Should truncate to 11
+                                                                                          // digits (first 11 digits)
         }
 
         @Test

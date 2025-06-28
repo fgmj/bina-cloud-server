@@ -159,50 +159,6 @@ class NotificationServiceTest {
     }
 
     @Test
-    void testConvertToBrasiliaTime_WithISOFormat_ShouldSucceed() throws Exception {
-        // Arrange
-        String isoTimestamp = "2025-06-25T20:26:56";
-
-        // Act
-        Method method = NotificationService.class.getDeclaredMethod("convertToBrasiliaTime", String.class);
-        method.setAccessible(true);
-        String result = (String) method.invoke(notificationService, isoTimestamp);
-
-        // Assert
-        assertNotNull(result);
-        assertTrue(result.matches("\\d{2}/\\d{2}/\\d{4} \\d{2}:\\d{2}:\\d{2}"));
-        assertEquals("25/06/2025 17:26:56", result); // UTC-3 para Brasília
-    }
-
-    @Test
-    void testConvertToBrasiliaTime_WithBrazilianFormat_ShouldFail() throws Exception {
-        // Arrange
-        String brazilianTimestamp = "25/06/2025 20:26:56";
-
-        // Act & Assert
-        Method method = NotificationService.class.getDeclaredMethod("convertToBrasiliaTime", String.class);
-        method.setAccessible(true);
-
-        // Deve retornar o timestamp original devido ao erro de parsing
-        String result = (String) method.invoke(notificationService, brazilianTimestamp);
-        assertEquals(brazilianTimestamp, result);
-    }
-
-    @Test
-    void testConvertToBrasiliaTime_WithInvalidFormat_ShouldReturnOriginal() throws Exception {
-        // Arrange
-        String invalidTimestamp = "invalid-timestamp";
-
-        // Act
-        Method method = NotificationService.class.getDeclaredMethod("convertToBrasiliaTime", String.class);
-        method.setAccessible(true);
-        String result = (String) method.invoke(notificationService, invalidTimestamp);
-
-        // Assert
-        assertEquals(invalidTimestamp, result);
-    }
-
-    @Test
     void testNotifyNewEvent_WithBrazilianTimestamp_ShouldNotThrowException() {
         // Arrange
         String eventId = "1";

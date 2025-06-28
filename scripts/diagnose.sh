@@ -128,4 +128,64 @@ echo "   Verificar certificado: docker run --rm -v ssl-certs:/etc/letsencrypt al
 echo "   Reiniciar nginx: docker-compose restart nginx"
 echo
 
-echo "✅ Diagnóstico concluído!" 
+echo "✅ Diagnóstico concluído!"
+
+echo "🔍 Diagnóstico de Memória - Bina Cloud Server"
+echo "=============================================="
+
+# Verificar se o container está rodando
+if ! docker ps | grep -q "bina-cloud-server_app_1"; then
+    echo "❌ Container da aplicação não está rodando!"
+    exit 1
+fi
+
+echo "📊 Status dos Containers:"
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+echo ""
+echo "💾 Uso de Memória dos Containers:"
+docker stats --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}"
+
+echo ""
+echo "🔧 Configurações JVM da Aplicação:"
+docker exec bina-cloud-server_app_1 java -XX:+PrintFlagsFinal -version 2>/dev/null | grep -E "(MaxHeapSize|MaxMetaspaceSize|CompressedClassSpaceSize)" || echo "Não foi possível obter configurações JVM"
+
+echo ""
+echo "📈 Logs de GC (últimas 20 linhas):"
+if docker exec bina-cloud-server_app_1 test -f /tmp/gc.log; then
+    docker exec bina-cloud-server_app_1 tail -20 /tmp/gc.log 2>/dev/null || echo "Arquivo de GC não encontrado"
+else
+    echo "Arquivo de GC não encontrado"
+fi
+
+echo ""
+echo "🗑️ Heap Dumps (se existirem):"
+docker exec bina-cloud-server_app_1 ls -la /tmp/*.hprof 2>/dev/null || echo "Nenhum heap dump encontrado"
+
+echo ""
+echo "📋 Logs da Aplicação (últimas 10 linhas com erro):"
+docker logs --tail 10 bina-cloud-server_app_1 2>&1 | grep -i "error\|exception\|outofmemory" || echo "Nenhum erro encontrado nos logs recentes"
+
+echo ""
+echo "🌐 Status da Aplicação:"
+if curl -s http://localhost:8080/actuator/health >/dev/null 2>&1; then
+    echo "✅ Aplicação respondendo na porta 8080"
+    curl -s http://localhost:8080/actuator/health | jq . 2>/dev/null || curl -s http://localhost:8080/actuator/health
+else
+    echo "❌ Aplicação não está respondendo na porta 8080"
+fi
+
+echo ""
+echo "🔍 Verificações Adicionais:"
+echo "1. Verificar se há muitos eventos no banco:"
+docker exec bina-cloud-server_app_1 wget -qO- http://localhost:8080/h2-console 2>/dev/null | grep -q "H2 Console" && echo "   ✅ H2 Console acessível" || echo "   ❌ H2 Console não acessível"
+
+echo "2. Verificar uso de disco:"
+docker exec bina-cloud-server_app_1 df -h /app/data 2>/dev/null || echo "   ❌ Não foi possível verificar uso de disco"
+
+echo ""
+echo "💡 Recomendações:"
+echo "- Se o Metaspace estiver alto, considere aumentar MaxMetaspaceSize"
+echo "- Se o heap estiver alto, verifique se há memory leaks no código"
+echo "- Monitore os logs de GC para identificar padrões de uso de memória"
+echo "- Considere reduzir o número de conexões simultâneas se necessário" 

@@ -121,7 +121,8 @@ class EventoPerformanceTest {
         assertTrue(processingTime < 10000, "Processamento muito lento: " + processingTime + "ms");
 
         // Verificar que as consultas por número de telefone funcionam
-        for (String phoneNumber : phoneNumbers) {
+        String[] expectedPhoneNumbers = { "61981122752", "11987654321", "21999887766" }; // Leading zeros removed
+        for (String phoneNumber : expectedPhoneNumbers) {
             List<Evento> eventsForPhone = eventoRepository.findByPhoneNumberOrderByTimestampDesc(phoneNumber);
             assertTrue(eventsForPhone.size() > 0, "Nenhum evento encontrado para " + phoneNumber);
         }
@@ -173,7 +174,7 @@ class EventoPerformanceTest {
         // Verificar que a extração de telefone ainda funciona
         List<Evento> allEvents = eventoRepository.findAll();
         for (Evento evento : allEvents) {
-            assertEquals("061981122752", evento.getPhoneNumber());
+            assertEquals("61981122752", evento.getPhoneNumber());
         }
     }
 

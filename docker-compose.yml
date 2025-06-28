@@ -11,15 +11,15 @@ services:
       - h2-data:/app/data
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
-      # JAVA_OPTS otimizado para baixa memória
-      - JAVA_OPTS=-server -Xmx192m -Xms90m -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=70m -XX:CompressedClassSpaceSize=25m -XX:ReservedCodeCacheSize=25m -XX:+UseStringDeduplication -Djava.awt.headless=true -XX:+OptimizeStringConcat -XX:+UseCompressedOops -XX:+UseCompressedClassPointers      
-
+      # JAVA_OPTS otimizado para baixa memória com Metaspace aumentado
+      - JAVA_OPTS=-server -Xmx256m -Xms90m -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=70m -XX:CompressedClassSpaceSize=25m -XX:ReservedCodeCacheSize=25m -XX:+UseStringDeduplication -Djava.awt.headless=true -XX:+OptimizeStringConcat -XX:+UseCompressedOops -XX:+UseCompressedClassPointers        
+ 
     deploy:
       resources:
         limits:
-          memory: 300m          # ✅ Ajustado para JAVA_OPTS
+          memory: 512m          # Aumentado para acomodar Metaspace maior
         reservations:
-          memory: 200m          # ✅ Ajustado para JAVA_OPTS
+          memory: 250m          # Aumentado para acomodar Metaspace maior
     healthcheck:
       # ✅ Usando wget (geralmente disponível) ou Java direto
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1"]

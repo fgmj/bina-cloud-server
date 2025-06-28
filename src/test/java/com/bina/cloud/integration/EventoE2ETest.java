@@ -2,6 +2,7 @@ package com.bina.cloud.integration;
 
 import com.bina.cloud.model.Evento;
 import com.bina.cloud.repository.EventoRepository;
+import com.bina.cloud.service.EventoService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,6 +47,9 @@ class EventoE2ETest {
     @Autowired
     private EventoRepository eventoRepository;
 
+    @Autowired
+    private EventoService eventoService;
+
     private WebSocketStompClient stompClient;
     private CompletableFuture<String> notificationFuture;
 
@@ -84,13 +88,13 @@ class EventoE2ETest {
         // Assert - Verificar resposta da API
         Evento savedEvento = objectMapper.readValue(response, Evento.class);
         assertNotNull(savedEvento.getId());
-        assertEquals("061981122752", savedEvento.getPhoneNumber());
+        assertEquals("61981122752", savedEvento.getPhoneNumber());
         assertEquals("CALL_RECEIVED", savedEvento.getEventType());
 
         // Assert - Verificar notificação WebSocket
         String notification = notificationFuture.get(5, TimeUnit.SECONDS);
         assertNotNull(notification);
-        assertTrue(notification.contains("061981122752"));
+        assertTrue(notification.contains("61981122752"));
         assertTrue(notification.contains("CALL_RECEIVED"));
         assertTrue(notification.contains("portal.gasdelivery.com.br"));
     }
@@ -111,7 +115,7 @@ class EventoE2ETest {
 
         // Assert - Verificar que ambos foram salvos
         assertEquals(2, eventoRepository.count());
-        assertEquals(2, eventoRepository.findByPhoneNumberOrderByTimestampDesc("061981122752").size());
+        assertEquals(2, eventoRepository.findByPhoneNumberOrderByTimestampDesc("61981122752").size());
 
         // Assert - Verificar notificações WebSocket
         String notification1 = notificationFuture.get(5, TimeUnit.SECONDS);
@@ -119,7 +123,7 @@ class EventoE2ETest {
 
         assertNotNull(notification1);
         assertNotNull(notification2);
-        assertTrue(notification1.contains("061981122752") || notification2.contains("061981122752"));
+        assertTrue(notification1.contains("61981122752") || notification2.contains("61981122752"));
     }
 
     @Test
@@ -172,9 +176,8 @@ class EventoE2ETest {
     }
 
     private String sendEventViaRest(Evento evento) throws Exception {
-        // Simular requisição REST usando TestRestTemplate ou similar
-        // Por simplicidade, vamos usar o serviço diretamente
-        Evento savedEvento = eventoRepository.save(evento);
+        // Usar o serviço para processar o evento corretamente
+        Evento savedEvento = eventoService.criarEvento(evento);
         return objectMapper.writeValueAsString(savedEvento);
     }
 

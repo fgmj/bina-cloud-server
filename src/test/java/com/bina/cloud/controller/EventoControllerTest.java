@@ -80,7 +80,7 @@ class EventoControllerTest {
                 .andExpect(jsonPath("$.deviceId", is("052ad7f7b6ee816b")))
                 .andExpect(jsonPath("$.eventType", is("CALL_RECEIVED")))
                 .andExpect(jsonPath("$.additionalData", containsString("061981122752")))
-                .andExpect(jsonPath("$.phoneNumber", is("061981122752"))) // Verifica extração do número
+                .andExpect(jsonPath("$.phoneNumber", is("61981122752"))) // Leading zero should be removed
                 .andExpect(jsonPath("$.timestamp", notNullValue()));
     }
 
