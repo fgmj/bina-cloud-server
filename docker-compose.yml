@@ -77,26 +77,18 @@ services:
       - ssl-certs:/etc/letsencrypt
       - certbot-web:/var/www/certbot
       - certbot-logs:/var/log/letsencrypt
+      - ./scripts/certbot-entrypoint.sh:/entrypoint.sh:ro
     environment:
       - CERTBOT_EMAIL=${CERTBOT_EMAIL:-fernando.medeiros@gmail.com}
       - DOMAIN=${NGINX_HOST:-bina.fernandojunior.com.br}
+      - RENEWAL_INTERVAL=${RENEWAL_INTERVAL:-12h}
     deploy:
       resources:
         limits:
           memory: 32m           # ✅ Certbot é leve
         reservations:
           memory: 16m
-    command: >
-      sh -c '
-        echo "🔐 Iniciando renovação automática de certificados..." &&
-        while true; do
-          sleep 12h &&
-          echo "🔄 Verificando renovação..." &&
-          certbot renew --webroot -w /var/www/certbot --quiet --non-interactive --agree-tos --email $${CERTBOT_EMAIL} &&
-          echo "✅ Certificados renovados!" &&
-          docker exec nginx nginx -s reload 2>/dev/null || echo "⚠️ Nginx reload falhou"
-        done
-      '
+    entrypoint: ["/bin/bash", "/entrypoint.sh"]
     depends_on:
       - nginx
     networks:
