@@ -12,7 +12,8 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
       # JAVA_OPTS otimizado para resolver OutOfMemoryError: Metaspace
-      - JAVA_OPTS=-server -Xmx512m -Xms256m -Xss512k -XX:+UseG1GC -XX:CompressedClassSpaceSize=64m -XX:ReservedCodeCacheSize=64m -Djava.awt.headless=true -XX:+OptimizeStringConcat -XX:+UseCompressedOops -XX:+UseCompressedClassPointers -XX:+UseStringDeduplication -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/ -XX:+PrintGCDetails -Xloggc:/tmp/gc.log -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=3 -XX:GCLogFileSize=10M -XX:G1HeapRegionSize=8m -XX:MaxGCPauseMillis=200 
+      #- JAVA_OPTS=-server -Xmx512m -Xms256m -Xss512k -XX:+UseG1GC -XX:CompressedClassSpaceSize=64m -XX:ReservedCodeCacheSize=64m -Djava.awt.headless=true -XX:+OptimizeStringConcat -XX:+UseCompressedOops -XX:+UseCompressedClassPointers -XX:+UseStringDeduplication -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/ -XX:+PrintGCDetails -Xloggc:/tmp/gc.log -XX:NumberOfGCLogFiles=3 -XX:GCLogFileSize=10M -XX:G1HeapRegionSize=8m -XX:MaxGCPauseMillis=200 
+      - JAVA_OPTS=-Xmx384m -Xms128m -XX:+UseG1GC -Xlog:gc
     deploy:
       resources:
         limits:
