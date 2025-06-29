@@ -23,7 +23,7 @@ services:
     healthcheck:
       # ✅ Usando wget (geralmente disponível) ou Java direto
       #test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1"]
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/ || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/monitor || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
