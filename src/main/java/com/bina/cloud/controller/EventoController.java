@@ -32,8 +32,19 @@ public class EventoController {
     public ResponseEntity<Evento> createEvento(
             @Parameter(description = "Dados do evento a ser criado", required = true)
             @RequestBody Evento evento) {
-        log.info("Received new event: {}", evento);
-        return ResponseEntity.ok(eventoService.criarEvento(evento));
+        long startTime = System.currentTimeMillis();
+        log.info("[EventoController] createEvento - IN deviceId={} eventType={} description={} ",
+                evento.getDeviceId(), evento.getEventType(), evento.getDescription());
+        try {
+            Evento created = eventoService.criarEvento(evento);
+            long durationMs = System.currentTimeMillis() - startTime;
+            log.info("[EventoController] createEvento - OUT success id={} durationMs={}ms", created.getId(), durationMs);
+            return ResponseEntity.ok(created);
+        } catch (Exception e) {
+            long durationMs = System.currentTimeMillis() - startTime;
+            log.error("[EventoController] createEvento - ERROR durationMs={}ms message={}", durationMs, e.getMessage(), e);
+            throw e; // Propagar exceção para tratamento global
+        }
     }
 
     @GetMapping
@@ -42,7 +53,18 @@ public class EventoController {
         @ApiResponse(responseCode = "200", description = "Lista de eventos retornada com sucesso")
     })
     public ResponseEntity<List<Evento>> getAllEventos() {
-        return ResponseEntity.ok(eventoService.listarEventos());
+        long startTime = System.currentTimeMillis();
+        log.debug("[EventoController] getAllEventos - IN");
+        try {
+            var eventos = eventoService.listarEventos();
+            long durationMs = System.currentTimeMillis() - startTime;
+            log.info("[EventoController] getAllEventos - OUT size={} durationMs={}ms", eventos.size(), durationMs);
+            return ResponseEntity.ok(eventos);
+        } catch (Exception e) {
+            long durationMs = System.currentTimeMillis() - startTime;
+            log.error("[EventoController] getAllEventos - ERROR durationMs={}ms message={}", durationMs, e.getMessage(), e);
+            throw e;
+        }
     }
 
     @GetMapping("/{id}")
@@ -54,8 +76,25 @@ public class EventoController {
     public ResponseEntity<Evento> getEventoById(
             @Parameter(description = "ID do evento a ser buscado", required = true)
             @PathVariable Long id) {
-        return eventoService.buscarPorId(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        long startTime = System.currentTimeMillis();
+        log.debug("[EventoController] getEventoById - IN id={}", id);
+        try {
+            var response = eventoService.buscarPorId(id)
+                    .map(evento -> {
+                        long durationMs = System.currentTimeMillis() - startTime;
+                        log.info("[EventoController] getEventoById - OUT FOUND id={} durationMs={}ms", id, durationMs);
+                        return ResponseEntity.ok(evento);
+                    })
+                    .orElseGet(() -> {
+                        long durationMs = System.currentTimeMillis() - startTime;
+                        log.warn("[EventoController] getEventoById - OUT NOT_FOUND id={} durationMs={}ms", id, durationMs);
+                        return ResponseEntity.notFound().build();
+                    });
+            return response;
+        } catch (Exception e) {
+            long durationMs = System.currentTimeMillis() - startTime;
+            log.error("[EventoController] getEventoById - ERROR id={} durationMs={}ms message={}", id, durationMs, e.getMessage(), e);
+            throw e;
+        }
     }
 } 
