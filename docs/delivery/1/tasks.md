@@ -8,4 +8,5 @@ This document lists all tasks associated with PBI 1.
 
 | Task ID | Name | Status | Description |
 | :------ | :--------------------------------------- | :------- | :--------------------------------- |
-| 1-1 | [Adicionar logs estruturados no EventoController](mdc:1-1.md) | InProgress | Instrumentar EventoController com logs de entrada/saída, sucesso/falha e tempo de processamento |
+| 1-1 | [Adicionar logs estruturados no EventoController](mdc:1-1.md) | Review | Instrumentar EventoController com logs de entrada/saída, sucesso/falha e tempo de processamento |
+| 1-2 | [Adicionar logs estruturados no WebController](mdc:1-2.md) | InProgress | Instrumentar WebController com logs de entrada/saída, sucesso/falha e tempo de processamento |
