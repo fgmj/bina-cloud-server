@@ -30,7 +30,7 @@ public class DispositivoWebController {
     }
 
     @GetMapping("/{id}/editar")
-    public String editar(@PathVariable String id, Model model) {
+    public String editar(@PathVariable Long id, Model model) {
         model.addAttribute("currentPage", "dispositivos");
         return dispositivoService.buscarPorId(id)
                 .map(dispositivo -> {
@@ -43,7 +43,7 @@ public class DispositivoWebController {
     @PostMapping
     public String salvar(@ModelAttribute Dispositivo dispositivo, RedirectAttributes redirectAttributes) {
         try {
-            if (dispositivo.getId() == null || dispositivo.getId().isEmpty()) {
+            if (dispositivo.getId() == null) {
                 dispositivoService.salvar(dispositivo);
                 redirectAttributes.addFlashAttribute("mensagem", "Dispositivo cadastrado com sucesso!");
             } else {
@@ -57,7 +57,7 @@ public class DispositivoWebController {
     }
 
     @PatchMapping("/{id}/desativar")
-    public String desativar(@PathVariable String id, RedirectAttributes redirectAttributes) {
+    public String desativar(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         try {
             dispositivoService.desativar(id);
             redirectAttributes.addFlashAttribute("mensagem", "Dispositivo desativado com sucesso!");
@@ -68,7 +68,7 @@ public class DispositivoWebController {
     }
 
     @DeleteMapping("/{id}")
-    public String excluir(@PathVariable String id, RedirectAttributes redirectAttributes) {
+    public String excluir(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         try {
             dispositivoService.excluir(id);
             redirectAttributes.addFlashAttribute("mensagem", "Dispositivo excluído com sucesso!");

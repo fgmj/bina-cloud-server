@@ -26,7 +26,7 @@ public class DispositivoController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Dispositivo> buscarPorId(@PathVariable String id) {
+    public ResponseEntity<Dispositivo> buscarPorId(@PathVariable Long id) {
         return dispositivoService.buscarPorId(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -38,7 +38,7 @@ public class DispositivoController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Dispositivo> atualizar(@PathVariable String id, @RequestBody Dispositivo dispositivo) {
+    public ResponseEntity<Dispositivo> atualizar(@PathVariable Long id, @RequestBody Dispositivo dispositivo) {
         try {
             return ResponseEntity.ok(dispositivoService.atualizar(id, dispositivo));
         } catch (RuntimeException e) {
@@ -47,13 +47,13 @@ public class DispositivoController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> excluir(@PathVariable String id) {
+    public ResponseEntity<Void> excluir(@PathVariable Long id) {
         dispositivoService.excluir(id);
         return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/{id}/desativar")
-    public ResponseEntity<Dispositivo> desativar(@PathVariable String id) {
+    public ResponseEntity<Dispositivo> desativar(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(dispositivoService.desativar(id));
         } catch (RuntimeException e) {

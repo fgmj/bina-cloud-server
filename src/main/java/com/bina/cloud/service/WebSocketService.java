@@ -26,7 +26,6 @@ import org.slf4j.LoggerFactory;
 @RequiredArgsConstructor
 @Slf4j
 public class WebSocketService extends TextWebSocketHandler {
-    private static final Logger log = LoggerFactory.getLogger(WebSocketService.class);
     private final ConcurrentMap<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
     private final ObjectMapper objectMapper;
     private final DispositivoRepository dispositivoRepository;
