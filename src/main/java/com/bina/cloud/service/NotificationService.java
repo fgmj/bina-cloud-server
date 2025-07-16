@@ -26,32 +26,40 @@ public class NotificationService {
 
     public void notifyNewEvent(String eventId, String eventTitle, String eventType, String deviceId, String timestamp,
             String additionalData) {
-        log.info("Processando novo evento: {} - {}", eventType, eventTitle);
+        long startTime = System.currentTimeMillis();
+        log.info("[NotificationService] notifyNewEvent - IN eventId={} eventType={} deviceId={} ", eventId, eventType, deviceId);
 
-        // Converter timestamp para Brasília
-        String brasiliaTimestamp = TimezoneUtil.convertTimestampToBrasilia(timestamp);
+        try {
+            // Converter timestamp para Brasília
+            String brasiliaTimestamp = TimezoneUtil.convertTimestampToBrasilia(timestamp);
 
-        // Extrair o número de telefone do additionalData
-        String phoneNumber = extractPhoneNumber(additionalData);
-        String url = "";
-        String timeSinceLastCall = "";
+            // Extrair o número de telefone do additionalData
+            String phoneNumber = extractPhoneNumber(additionalData);
+            String url = "";
+            String timeSinceLastCall = "";
 
-        if (!phoneNumber.isEmpty()) {
-            url = String.format("https://portal.gasdelivery.com.br/secure/client/?primary_phone=%s", phoneNumber);
-            log.info("URL do Gas Delivery gerada: {}", url);
+            if (!phoneNumber.isEmpty()) {
+                url = String.format("https://portal.gasdelivery.com.br/secure/client/?primary_phone=%s", phoneNumber);
+                log.debug("[NotificationService] URL do Gas Delivery gerada={}", url);
 
-            // Calcular tempo desde a última ligação
-            timeSinceLastCall = calculateTimeSinceLastCall(phoneNumber);
-        } else {
-            log.warn("Nenhum número de telefone encontrado em additionalData: {}", additionalData);
+                // Calcular tempo desde a última ligação
+                timeSinceLastCall = calculateTimeSinceLastCall(phoneNumber);
+            } else {
+                log.warn("[NotificationService] Nenhum número de telefone encontrado: additionalData={}", additionalData);
+            }
+
+            EventNotification notification = new EventNotification(
+                    eventId, eventTitle, eventType, deviceId, brasiliaTimestamp, additionalData, url, timeSinceLastCall,
+                    phoneNumber);
+
+            messagingTemplate.convertAndSend("/topic/events", notification);
+            long durationMs = System.currentTimeMillis() - startTime;
+            log.info("[NotificationService] notifyNewEvent - OUT success durationMs={}ms", durationMs);
+        } catch (Exception e) {
+            long durationMs = System.currentTimeMillis() - startTime;
+            log.error("[NotificationService] notifyNewEvent - ERROR durationMs={}ms message={}", durationMs, e.getMessage(), e);
+            throw e;
         }
-
-        EventNotification notification = new EventNotification(
-                eventId, eventTitle, eventType, deviceId, brasiliaTimestamp, additionalData, url, timeSinceLastCall,
-                phoneNumber);
-
-        messagingTemplate.convertAndSend("/topic/events", notification);
-        log.info("Notificação enviada via WebSocket para evento ID: {}", eventId);
     }
 
     private String extractPhoneNumber(String additionalData) {
