@@ -103,6 +103,8 @@ const EventUtils = {
             element.classList.add(typeClass);
         }
 
+        element.setAttribute('data-device-id', event.deviceId || '');
+
         element.innerHTML = `
             <div class="event-title">${this.translateStatus(event.eventType)}</div>
             <div class="event-meta">                

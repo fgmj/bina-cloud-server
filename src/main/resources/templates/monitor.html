@@ -534,6 +534,13 @@
                 </h3>
             </div>
             <div class="card-body">
+                <!-- Device filter -->
+                <div class="mb-3">
+                    <label for="deviceFilter" class="form-label">Filtrar por dispositivo</label>
+                    <select id="deviceFilter" class="form-select" multiple size="5"
+                        aria-label="Filtro de dispositivos (múltipla seleção)"></select>
+                    <small class="text-muted">Sem seleção = todos os dispositivos. Use Ctrl/Cmd para múltiplos.</small>
+                </div>
                 <div class="event-list" id="unifiedEventList">
                     <!-- Historical events from server -->
                     <div th:if="${#lists.isEmpty(eventos)}" class="empty-state">
@@ -543,7 +550,7 @@
 
                     <!-- Template para cards de eventos históricos -->
                     <div th:each="evento : ${eventos}" class="event-item historical"
-                        th:data-event-type="${evento.eventType}">
+                        th:data-event-type="${evento.eventType}" th:data-device-id="${evento.deviceId}">
                         <div class="event-title"
                             th:text="${#strings.equals(evento.eventType, 'CALL_RECEIVED') ? 'Chamada recebida' : 
                                                               #strings.equals(evento.eventType, 'CALL_MISSED') ? 'Chamada perdida' : 
@@ -835,51 +842,66 @@
         }
 
         function handleNewEvent(event) {
-            eventCount++;
-            updateEventCount();
+            const selected = getSelectedDevices();
+            const isAllowed = selected.length === 0 || (event.deviceId && selected.includes(event.deviceId));
 
             const eventList = document.getElementById('unifiedEventList');
 
-            // Remove empty state if present
-            const emptyState = eventList.querySelector('.empty-state');
-            if (emptyState) {
-                emptyState.remove();
-            }
+            if (isAllowed) {
+                eventCount++;
 
-            const eventElement = EventUtils.createEventCard(event, true);
-            eventList.insertBefore(eventElement, eventList.firstChild);
+                // Remove empty state if present
+                const emptyState = eventList.querySelector('.empty-state');
+                if (emptyState) {
+                    emptyState.remove();
+                }
 
-            showNotification(event.eventTitle || 'Novo evento recebido');
+                const eventElement = EventUtils.createEventCard(event, true);
+                eventList.insertBefore(eventElement, eventList.firstChild);
 
-            // Auto-open URL if available
-            if (event.url && event.url.trim() !== '') {
-                console.log('Tentando abrir URL:', event.url);
+                // Ensure device appears in filter options
+                if (event.deviceId) {
+                    addDeviceOptionIfMissing(event.deviceId);
+                }
 
-                setTimeout(() => {
-                    try {
-                        const newWindow = window.open(event.url, '_blank');
+                // Re-apply filter to maintain visibility and accurate count
+                applyDeviceFilter();
 
-                        if (newWindow) {
-                            console.log('URL aberta com sucesso');
-                            showNotification('Portal Gas Delivery aberto automaticamente');
-                        } else {
-                            console.warn('Popup bloqueado pelo navegador');
-                            showNotification('Popup bloqueado - Clique para abrir manualmente', 'warning');
+                showNotification(event.eventTitle || 'Novo evento recebido');
 
+                // Auto-open URL if available
+                if (event.url && event.url.trim() !== '') {
+                    console.log('Tentando abrir URL:', event.url);
+
+                    setTimeout(() => {
+                        try {
+                            const newWindow = window.open(event.url, '_blank');
+
+                            if (newWindow) {
+                                console.log('URL aberta com sucesso');
+                                showNotification('Portal Gas Delivery aberto automaticamente');
+                            } else {
+                                console.warn('Popup bloqueado pelo navegador');
+                                showNotification('Popup bloqueado - Clique para abrir manualmente', 'warning');
+
+                            }
+                        } catch (error) {
+                            console.error('Erro ao abrir URL:', error);
+                            showNotification('Erro ao abrir portal', 'error');
                         }
-                    } catch (error) {
-                        console.error('Erro ao abrir URL:', error);
-                        showNotification('Erro ao abrir portal', 'error');
-                    }
-                }, 1000);
-            } else {
-                console.log('Nenhuma URL disponível para este evento');
-            }
+                    }, 1000);
+                } else {
+                    console.log('Nenhuma URL disponível para este evento');
+                }
 
-            // Limit total events
-            const allEvents = eventList.getElementsByClassName('event-item');
-            if (allEvents.length > maxEvents) {
-                eventList.removeChild(allEvents[allEvents.length - 1]);
+                // Limit total events
+                const allEvents = eventList.getElementsByClassName('event-item');
+                if (allEvents.length > maxEvents) {
+                    eventList.removeChild(allEvents[allEvents.length - 1]);
+                }
+            } else {
+                // Ignorar evento por filtro
+                console.log('Evento ignorado por filtro de dispositivo:', event.deviceId);
             }
         }
 
@@ -972,6 +994,15 @@
             // Initialize portal buttons for historical events
             initializePortalButtons();
 
+            // Build device filter options from historical events
+            initializeDeviceFilter();
+
+            // Restore selection from cookie, if any
+            applySavedSelectionFromCookie();
+
+            // Apply initial filter
+            applyDeviceFilter();
+
             initializeWebSocket();
         });
 
@@ -1000,6 +1031,127 @@
         window.addEventListener('beforeunload', function () {
             disconnect();
         });
+
+        function getSelectedDevices() {
+            const select = document.getElementById('deviceFilter');
+            if (!select) return [];
+            return Array.from(select.selectedOptions).map(o => o.value).filter(Boolean);
+        }
+
+        function initializeDeviceFilter() {
+            const select = document.getElementById('deviceFilter');
+            const eventList = document.getElementById('unifiedEventList');
+            const deviceIds = new Set();
+            eventList.querySelectorAll('.event-item').forEach(item => {
+                const id = item.getAttribute('data-device-id');
+                if (id) deviceIds.add(id);
+            });
+
+            // Preserve previous selection if any
+            const previous = new Set(getSelectedDevices());
+            select.innerHTML = '';
+
+            Array.from(deviceIds).sort().forEach(id => {
+                const opt = document.createElement('option');
+                opt.value = id;
+                opt.textContent = id;
+                if (previous.has(id)) opt.selected = true;
+                select.appendChild(opt);
+            });
+
+            select.addEventListener('change', function () {
+                setDeviceFilterCookie(getSelectedDevices());
+                applyDeviceFilter();
+            });
+        }
+
+        function addDeviceOptionIfMissing(id) {
+            const select = document.getElementById('deviceFilter');
+            if (!id || !select) return;
+            const exists = Array.from(select.options).some(o => o.value === id);
+            if (!exists) {
+                const previous = new Set(getSelectedDevices());
+                const saved = new Set(getDeviceFilterCookie());
+                const opt = document.createElement('option');
+                opt.value = id;
+                opt.textContent = id;
+                if (previous.size === 0 && saved.size === 0) {
+                    // keep none selected state
+                } else if (previous.has(id) || saved.has(id)) {
+                    opt.selected = true;
+                }
+                select.appendChild(opt);
+            }
+        }
+
+        // Cookie helpers
+        const DEVICE_FILTER_COOKIE = 'monitorDeviceFilter';
+
+        function setDeviceFilterCookie(values) {
+            try {
+                // "Infinito": usar max-age do maior inteiro suportado (~68 anos)
+                const maxAge = 2147483647; // segundos
+                const encoded = encodeURIComponent((values || []).join(','));
+                document.cookie = `${DEVICE_FILTER_COOKIE}=${encoded}; max-age=${maxAge}; path=/`;
+            } catch (e) {
+                console.warn('Falha ao salvar cookie de filtro:', e);
+            }
+        }
+
+        function getCookieRaw(name) {
+            const cname = name + '=';
+            const decodedCookie = decodeURIComponent(document.cookie || '');
+            const ca = decodedCookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) === ' ') c = c.substring(1);
+                if (c.indexOf(cname) === 0) return c.substring(cname.length, c.length);
+            }
+            return '';
+        }
+
+        function getDeviceFilterCookie() {
+            try {
+                const raw = getCookieRaw(DEVICE_FILTER_COOKIE);
+                if (!raw) return [];
+                const decoded = decodeURIComponent(raw);
+                return decoded.split(',').map(v => v.trim()).filter(Boolean);
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function applySavedSelectionFromCookie() {
+            const saved = getDeviceFilterCookie();
+            if (saved.length === 0) return;
+            const select = document.getElementById('deviceFilter');
+            if (!select) return;
+            let any = false;
+            Array.from(select.options).forEach(opt => {
+                if (saved.includes(opt.value)) {
+                    opt.selected = true;
+                    any = true;
+                }
+            });
+            if (any) {
+                // Make sure count reflects cookie selection even before any change
+                applyDeviceFilter();
+            }
+        }
+
+        function applyDeviceFilter() {
+            const selected = getSelectedDevices();
+            const eventList = document.getElementById('unifiedEventList');
+            const items = eventList.querySelectorAll('.event-item');
+            let visible = 0;
+            items.forEach(item => {
+                const id = item.getAttribute('data-device-id');
+                const show = selected.length === 0 || (id && selected.includes(id));
+                item.style.display = show ? '' : 'none';
+                if (show) visible++;
+            });
+            document.getElementById('eventCount').textContent = `${visible} eventos`;
+        }
 
         // Load version on page load
         async function loadVersion() {

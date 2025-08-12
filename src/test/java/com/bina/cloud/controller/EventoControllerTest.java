@@ -85,6 +85,28 @@ class EventoControllerTest {
     }
 
     @Test
+    void createEvento_MVP_ShouldCreateCallReceivedEventWithLocalPhoneNumber() throws Exception {
+        // MVP Scenario: Recebimento de chamada com número de telefone
+        Evento evento = new Evento();
+        evento.setDescription("Chamada recebida");
+        evento.setDeviceId("052ad7f7b6ee816b");
+        evento.setEventType("CALL_RECEIVED");
+        evento.setAdditionalData(
+                "{\"numero\":\"06135674143\",\"data\":\"24/06/2025 19:59:59\",\"receivingNumber\":\"\"}");
+
+        mockMvc.perform(post("/api/eventos")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(evento)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", notNullValue()))
+                .andExpect(jsonPath("$.description", is("Chamada recebida")))
+                .andExpect(jsonPath("$.deviceId", is("052ad7f7b6ee816b")))
+                .andExpect(jsonPath("$.eventType", is("CALL_RECEIVED")))
+                .andExpect(jsonPath("$.phoneNumber", is("6135674143")))
+                .andExpect(jsonPath("$.timestamp", notNullValue()));
+    }
+
+    @Test
     void createEvento_CallMissed_ShouldExtractPhoneNumberCorrectly() throws Exception {
         Evento evento = new Evento();
         evento.setDescription("Chamada perdida");

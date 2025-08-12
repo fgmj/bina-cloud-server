@@ -2,6 +2,7 @@ package com.bina.cloud.service;
 
 import com.bina.cloud.model.Evento;
 import com.bina.cloud.repository.EventoRepository;
+import com.bina.cloud.util.PhoneNumberUtil;
 import com.bina.cloud.util.TimezoneUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +38,7 @@ public class EventoService {
             evento.setTimestamp(TimezoneUtil.getCurrentUtcTime());
 
             // Extrair número de telefone do additionalData e salvar no campo phoneNumber
-            String phoneNumber = extractPhoneNumber(evento.getAdditionalData());
+            String phoneNumber = PhoneNumberUtil.extractPhoneNumber(evento.getAdditionalData());
             evento.setPhoneNumber(phoneNumber);
 
             Evento eventoSalvo = eventoRepository.save(evento);
@@ -55,7 +56,8 @@ public class EventoService {
                     eventoSalvo.getAdditionalData());
 
             long durationMs = System.currentTimeMillis() - startTime;
-            log.info("[EventoService] criarEvento - OUT success id={} durationMs={}ms", eventoSalvo.getId(), durationMs);
+            log.info("[EventoService] criarEvento - OUT success id={} durationMs={}ms", eventoSalvo.getId(),
+                    durationMs);
             return eventoSalvo;
         } catch (Exception e) {
             long durationMs = System.currentTimeMillis() - startTime;
@@ -74,7 +76,8 @@ public class EventoService {
             return eventos;
         } catch (Exception e) {
             long durationMs = System.currentTimeMillis() - startTime;
-            log.error("[EventoService] listarEventos - ERROR durationMs={}ms message={}", durationMs, e.getMessage(), e);
+            log.error("[EventoService] listarEventos - ERROR durationMs={}ms message={}", durationMs, e.getMessage(),
+                    e);
             throw e;
         }
     }
@@ -90,7 +93,8 @@ public class EventoService {
             return eventos;
         } catch (Exception e) {
             long durationMs = System.currentTimeMillis() - startTime;
-            log.error("[EventoService] getUltimosEventos - ERROR durationMs={}ms message={}", durationMs, e.getMessage(), e);
+            log.error("[EventoService] getUltimosEventos - ERROR durationMs={}ms message={}", durationMs,
+                    e.getMessage(), e);
             throw e;
         }
     }
@@ -109,44 +113,10 @@ public class EventoService {
             return resultado;
         } catch (Exception e) {
             long durationMs = System.currentTimeMillis() - startTime;
-            log.error("[EventoService] buscarPorId - ERROR id={} durationMs={}ms message={}", id, durationMs, e.getMessage(), e);
+            log.error("[EventoService] buscarPorId - ERROR id={} durationMs={}ms message={}", id, durationMs,
+                    e.getMessage(), e);
             throw e;
         }
     }
 
-    private String extractPhoneNumber(String additionalData) {
-        if (additionalData == null || additionalData.isEmpty()) {
-            return "";
-        }
-
-        try {
-            // Tentar extrair número usando regex para JSON
-            String phoneNumber = PHONE_JSON_PATTERN.matcher(additionalData).replaceAll("$1");
-
-            // Se não encontrou no formato JSON, tentar outros padrões
-            if (phoneNumber.equals(additionalData)) {
-                // Tentar extrair apenas números
-                phoneNumber = DIGITS_ONLY_PATTERN.matcher(additionalData).replaceAll("");
-            }
-
-            if (!phoneNumber.isEmpty() && !"N/A".equals(phoneNumber)) {
-                // Remover zeros à esquerda (se o número começar com 0, ignorar o 0)
-                while (phoneNumber.startsWith("0")) {
-                    phoneNumber = phoneNumber.substring(1);
-                }
-
-                // Normalizar para 11 dígitos (DDD + número)
-                // Só truncar se tiver mais de 11 dígitos
-                if (phoneNumber.length() > 11) {
-                    phoneNumber = phoneNumber.substring(0, 11);
-                }
-                return phoneNumber;
-            }
-
-        } catch (Exception e) {
-            // Log error silently
-        }
-
-        return "";
-    }
 }
