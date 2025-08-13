@@ -23,15 +23,14 @@ jobs:
       - name: Fazer deploy no servidor
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
-            
-            docker stop $(docker ps -q)
-
+                        
             cd /home/ubuntu/bina-cloud-server
             git fetch origin
             git reset --hard origin/main
             git pull origin main
 
             export ENV=PROD 
+            export SPRING_PROFILES_ACTIVE=prod
             export NGINX_HOST=bina.fernandojunior.com.br
             chmod +x scripts/deploy-prod.sh
             ./scripts/deploy-prod.sh            
