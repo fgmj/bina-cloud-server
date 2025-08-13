@@ -1161,7 +1161,7 @@
                 document.getElementById('appVersion').textContent = data.version;
             } catch (error) {
                 console.error('Erro ao carregar versão:', error);
-                document.getElementById('appVersion').textContent = '1.0.1';
+                document.getElementById('appVersion').textContent = '---';
             }
         }
 
@@ -1198,7 +1198,7 @@
         style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border-top: 1px solid rgba(255, 255, 255, 0.2);">
         <div class="container text-center">
             <small class="text-white-50">
-                Bina Cloud Server v<span id="appVersion">1.0.1</span> |
+                Bina Cloud Server v<span id="appVersion">x.y.z</span> |
                 <i class="bi bi-heart-fill text-danger"></i> Powered by Spring Boot
             </small>
         </div>

@@ -219,6 +219,5 @@ Invoke-WebRequest -Uri "https://bina.fernandojunior.com.br" -UseBasicParsing | S
 
 ---
 
-**Última atualização**: Junho 2025  
-**Versão**: 1.0.1  
+**Última atualização**: Agosto 2025  
 **Sistema**: Windows 

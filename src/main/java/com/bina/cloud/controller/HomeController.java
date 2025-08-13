@@ -11,7 +11,7 @@ import java.util.Map;
 @Slf4j
 public class HomeController {
 
-    @Value("${project.version:1.0.1}")
+    @Value("${project.version:0.0.0}")
     private String version;
 
     @GetMapping("/api/version")

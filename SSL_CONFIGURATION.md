@@ -332,4 +332,3 @@ Configure webhooks para receber alertas sobre:
 ---
 
 **Última atualização**: Junho 2025
-**Versão**: 1.0.1 
